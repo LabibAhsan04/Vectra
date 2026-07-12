@@ -1,0 +1,10 @@
+fastapi==0.115.6
+uvicorn[standard]==0.34.0
+anthropic==0.45.2
+polygon-api-client==1.14.4
+finnhub-python==2.4.22
+sqlalchemy==2.0.37
+aiosqlite==0.20.0
+python-dotenv==1.0.1
+httpx==0.28.1
+pydantic-settings==2.7.1
