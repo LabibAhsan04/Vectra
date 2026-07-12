@@ -23,13 +23,18 @@ Vectra/
 └── docker-compose.yml
 ```
 
-## Phase 1 — Setup (current)
+## Phase 1 — Setup
 
 - [x] Monorepo folder structure
 - [x] React + TypeScript frontend with Tailwind CSS
 - [x] FastAPI backend skeleton with routers, models, schemas
 - [x] Environment variable templates
 - [x] API verification script
+
+## Phase 2 — Backend quotes
+
+- [x] `GET /health`
+- [x] `GET /api/stock/{ticker}` via Polygon (free-tier aggregates)
 
 ## Quick start
 

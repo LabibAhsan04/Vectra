@@ -15,10 +15,17 @@ services:
     build:
       context: ./client
       dockerfile: Dockerfile
+      args:
+        VITE_API_URL: http://localhost:8000
     ports:
       - "3000:3000"
+    # Vite reads VITE_* from process.env (compose environment) and from .env files.
+    # process.env wins when both are set.
     environment:
-      - VITE_API_URL=http://localhost:8000
+      VITE_API_URL: http://localhost:8000
+    env_file:
+      - path: client/.env
+        required: false
     volumes:
       - ./client:/app
       - /app/node_modules
