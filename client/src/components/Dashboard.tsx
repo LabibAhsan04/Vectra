@@ -1,5 +1,6 @@
 import TickerBar from './TickerBar';
 import StockCard from './StockCard';
+import NewsPanel from './NewsPanel';
 import { useStockStore } from '@/store/stockStore';
 import { useStockData } from '@/hooks/useStockData';
 
@@ -22,10 +23,7 @@ export default function Dashboard() {
 
       <main className="mt-6 grid gap-6 lg:grid-cols-[1.2fr_0.8fr]">
         <StockCard quote={data} loading={loading} error={error} />
-        <aside className="rounded-xl border border-border bg-card p-6 text-sm text-muted-foreground">
-          Charts, news, and analysis panels will appear in later phases.
-          Click a ticker above to refresh the quote.
-        </aside>
+        <NewsPanel ticker={activeTicker} />
       </main>
     </div>
   );

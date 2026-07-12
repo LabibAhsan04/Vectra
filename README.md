@@ -41,6 +41,11 @@ Vectra/
 - [x] Ticker bar + stock card UI
 - [x] Live quote fetch from backend API
 
+## Phase 4 — News
+
+- [x] Finnhub news endpoint
+- [x] NewsPanel with headlines per ticker
+
 ## Quick start
 
 ### 1. Clone and configure environment
