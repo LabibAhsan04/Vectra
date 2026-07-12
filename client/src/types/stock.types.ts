@@ -33,5 +33,11 @@ export interface AIAnalysis {
     technical: number;
     growth: number;
   };
+  newsItems: Array<{
+    headline: string;
+    sentiment: 'bullish' | 'bearish' | 'neutral';
+  }>;
+  keyRisks: string[];
+  keyCatalysts: string[];
   generatedAt: string;
 }

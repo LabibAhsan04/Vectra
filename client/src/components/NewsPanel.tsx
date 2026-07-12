@@ -5,6 +5,7 @@ import { API_BASE_URL } from '@/utils/constants';
 
 interface NewsPanelProps {
   ticker: string;
+  sentimentByHeadline?: Record<string, NewsItem['sentiment']>;
 }
 
 function formatPublishedAt(value: string): string {
@@ -35,7 +36,10 @@ function errorMessage(err: unknown, ticker: string): string {
   return `Failed to load news for ${ticker}`;
 }
 
-export default function NewsPanel({ ticker }: NewsPanelProps) {
+export default function NewsPanel({
+  ticker,
+  sentimentByHeadline = {},
+}: NewsPanelProps) {
   const [items, setItems] = useState<NewsItem[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
@@ -113,7 +117,11 @@ export default function NewsPanel({ ticker }: NewsPanelProps) {
 
       {!loading && !error && items.length > 0 && (
         <ul className="space-y-4">
-          {items.map((item, index) => (
+          {items.map((item, index) => {
+            const sentiment =
+              sentimentByHeadline[item.headline] ?? item.sentiment;
+
+            return (
             <li key={`${item.url}-${item.publishedAt}-${index}`}>
               <a
                 href={item.url}
@@ -123,9 +131,9 @@ export default function NewsPanel({ ticker }: NewsPanelProps) {
               >
                 <div className="flex flex-wrap items-center gap-2">
                   <span
-                    className={`rounded px-2 py-0.5 text-[11px] font-medium uppercase tracking-wide ${sentimentClass(item.sentiment)}`}
+                    className={`rounded px-2 py-0.5 text-[11px] font-medium uppercase tracking-wide ${sentimentClass(sentiment)}`}
                   >
-                    {item.sentiment}
+                    {sentiment}
                   </span>
                   <span className="text-xs text-muted-foreground">
                     {item.source}
@@ -139,7 +147,8 @@ export default function NewsPanel({ ticker }: NewsPanelProps) {
                 </p>
               </a>
             </li>
-          ))}
+            );
+          })}
         </ul>
       )}
     </section>

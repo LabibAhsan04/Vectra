@@ -18,8 +18,9 @@ class Settings(BaseSettings):
     news_api_key: str = ""
     anthropic_api_key: str = ""
     openrouter_api_key: str = ""
+    openrouter_model: str = "openai/gpt-4o-mini"
     database_url: str = "sqlite:///./stocks.db"
-    allowed_origins: str = "http://localhost:3000"
+    allowed_origins: str = "http://localhost:3000,http://127.0.0.1:3000"
     cache_ttl_seconds: int = 60
     port: int = 8000
 

@@ -26,10 +26,31 @@ class NewsItem(BaseModel):
     sentimentScore: float = 0.0
 
 
+class FactorScores(BaseModel):
+    momentum: int = Field(ge=0, le=100)
+    fundamentals: int = Field(ge=0, le=100)
+    sentiment: int = Field(ge=0, le=100)
+    technical: int = Field(ge=0, le=100)
+    growth: int = Field(ge=0, le=100)
+
+
+class NewsSentiment(BaseModel):
+    headline: str
+    sentiment: str
+
+
+class AnalyzeRequest(BaseModel):
+    ticker: str
+    force: bool = False
+
+
 class AIAnalysisResponse(BaseModel):
     ticker: str
     overallScore: int = Field(ge=0, le=100)
     signal: str
     analysisText: str
-    scores: dict[str, int]
+    scores: FactorScores
+    newsItems: list[NewsSentiment] = []
+    keyRisks: list[str] = []
+    keyCatalysts: list[str] = []
     generatedAt: datetime

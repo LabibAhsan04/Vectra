@@ -46,6 +46,11 @@ Vectra/
 - [x] Finnhub news endpoint
 - [x] NewsPanel with headlines per ticker
 
+## Phase 5 — AI analysis
+
+- [x] OpenRouter analysis endpoint (`POST /api/analyze`)
+- [x] AIAnalysis panel with signal, score, and factor bars
+
 ## Quick start
 
 ### 1. Clone and configure environment
