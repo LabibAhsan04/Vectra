@@ -36,6 +36,11 @@ Vectra/
 - [x] `GET /health`
 - [x] `GET /api/stock/{ticker}` via Polygon (free-tier aggregates)
 
+## Phase 3 — Frontend quotes
+
+- [x] Ticker bar + stock card UI
+- [x] Live quote fetch from backend API
+
 ## Quick start
 
 ### 1. Clone and configure environment

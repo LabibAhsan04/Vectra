@@ -14,7 +14,14 @@ app = FastAPI(title="Vectra — AI Stock Dashboard", version="0.1.0")
 
 app.add_middleware(
     CORSMiddleware,
-    allow_origins=[os.getenv("ALLOWED_ORIGINS", "http://localhost:3000")],
+    allow_origins=[
+        origin.strip()
+        for origin in os.getenv(
+            "ALLOWED_ORIGINS",
+            "http://localhost:3000,http://127.0.0.1:3000",
+        ).split(",")
+        if origin.strip()
+    ],
     allow_methods=["*"],
     allow_headers=["*"],
 )
