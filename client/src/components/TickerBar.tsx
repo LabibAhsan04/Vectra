@@ -43,44 +43,57 @@ export default function TickerBar() {
   }, []);
 
   return (
-    <div className="overflow-x-auto border-b border-border pb-4">
-      <div className="flex min-w-max gap-2">
-        {TICKER_BAR_SYMBOLS.map((ticker) => {
-          const quote = quotes[ticker];
-          const positive = (quote?.changePct ?? 0) >= 0;
-          const isActive = activeTicker === ticker;
+    <div className="relative border-b border-border pb-4">
+      <div
+        className="ticker-scroll overflow-x-auto"
+        role="group"
+        aria-label="Market tickers"
+      >
+        <div className="flex min-w-max gap-2 pr-6">
+          {TICKER_BAR_SYMBOLS.map((ticker) => {
+            const quote = quotes[ticker];
+            const positive = (quote?.changePct ?? 0) >= 0;
+            const isActive = activeTicker === ticker;
 
-          return (
-            <button
-              key={ticker}
-              type="button"
-              onClick={() => setActiveTicker(ticker)}
-              className={`rounded-lg border px-3 py-2 text-left transition ${
-                isActive
-                  ? 'border-primary bg-primary/10'
-                  : 'border-border bg-card hover:border-muted-foreground/40'
-              }`}
-            >
-              <div className="text-sm font-semibold text-foreground">{ticker}</div>
-              <div
-                className={`text-xs tabular-nums ${
-                  loading || !quote
-                    ? 'text-muted-foreground'
-                    : positive
-                      ? 'text-bullish'
-                      : 'text-bearish'
+            return (
+              <button
+                key={ticker}
+                type="button"
+                onClick={() => setActiveTicker(ticker)}
+                aria-pressed={isActive}
+                className={`rounded-lg border px-3 py-2 text-left transition ${
+                  isActive
+                    ? 'border-primary bg-primary/10'
+                    : 'border-border bg-card hover:border-muted-foreground/40'
                 }`}
               >
-                {loading
-                  ? '…'
-                  : quote
-                    ? formatChangePct(quote.changePct)
-                    : '—'}
-              </div>
-            </button>
-          );
-        })}
+                <div className="text-sm font-semibold text-foreground">
+                  {ticker}
+                </div>
+                {loading ? (
+                  <div className="mt-1 h-3 w-12 animate-pulse rounded bg-muted" />
+                ) : (
+                  <div
+                    className={`text-xs tabular-nums ${
+                      !quote
+                        ? 'text-muted-foreground'
+                        : positive
+                          ? 'text-bullish'
+                          : 'text-bearish'
+                    }`}
+                  >
+                    {quote ? formatChangePct(quote.changePct) : '—'}
+                  </div>
+                )}
+              </button>
+            );
+          })}
+        </div>
       </div>
+      <div
+        aria-hidden
+        className="pointer-events-none absolute inset-y-0 right-0 w-8 bg-gradient-to-l from-background to-transparent"
+      />
     </div>
   );
 }

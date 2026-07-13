@@ -2,6 +2,7 @@ import { useEffect, useState } from 'react';
 import axios from 'axios';
 import type { StockQuote } from '@/types/stock.types';
 import { API_BASE_URL, REFRESH_INTERVAL_MS } from '@/utils/constants';
+import { formatApiError } from '@/utils/apiError';
 
 interface UseStockDataResult {
   data: StockQuote | null;
@@ -60,10 +61,7 @@ export function useStockData(ticker: string): UseStockDataResult {
         hasLoadedData = true;
       } catch (err) {
         if (cancelled || currentRequest !== requestId) return;
-        const message =
-          axios.isAxiosError(err) && err.response?.data?.detail
-            ? String(err.response.data.detail)
-            : `Failed to load ${ticker}`;
+        const message = formatApiError(err, `Failed to load ${ticker}`);
 
         // Bug fix: only surface error / clear data on first failure.
         // Later poll failures keep the last good quote and do not toggle loading.

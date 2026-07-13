@@ -67,6 +67,14 @@ Vectra/
 - [x] SQLite-backed watchlist API (`GET/POST/DELETE /api/watchlist`)
 - [x] WatchList panel with add/remove and ticker selection
 
+## Phase 9 — Polish
+
+- [x] Shared API error helper + friendlier provider messages
+- [x] Loading skeletons, empty states, and retry actions
+- [x] Focus rings, `aria-pressed` / `aria-live` / labels
+- [x] Mobile padding and watchlist-first column order
+- [x] Ticker bar scroll cue + per-chip loading states
+
 ## Quick start
 
 ### 1. Clone and configure environment
@@ -129,7 +137,7 @@ All five services should report ✓ before moving to Phase 2.
 | 6 | Composite score system |
 | 7 | Historical price charts |
 | 8 | Watchlist persistence |
-| 9 | Polish (loading states, dark mode, mobile) |
+| **9** | Polish (loading states, a11y, mobile) |
 | 10 | Deploy to Vercel + Railway |
 
 ## Docker (optional)

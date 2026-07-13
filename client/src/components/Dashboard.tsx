@@ -36,12 +36,16 @@ export default function Dashboard() {
       <TickerBar />
 
       <main className="mt-6 grid gap-6 lg:grid-cols-[1.2fr_0.8fr]">
-        <div className="space-y-6">
+        <div className="order-2 space-y-6 lg:order-1">
           <StockCard quote={data} loading={loading} error={error} />
-          <PriceChart ticker={activeTicker} />
-          <AIAnalysisPanel ticker={activeTicker} onAnalysis={setAnalysis} />
+          <PriceChart key={activeTicker} ticker={activeTicker} />
+          <AIAnalysisPanel
+            key={`ai-${activeTicker}`}
+            ticker={activeTicker}
+            onAnalysis={setAnalysis}
+          />
         </div>
-        <div className="space-y-6">
+        <div className="order-1 space-y-6 lg:order-2">
           <WatchList />
           <NewsPanel
             ticker={activeTicker}

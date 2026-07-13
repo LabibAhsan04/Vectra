@@ -1,6 +1,7 @@
 import { create } from 'zustand';
 import axios from 'axios';
 import { API_BASE_URL } from '@/utils/constants';
+import { formatApiError } from '@/utils/apiError';
 
 export interface WatchlistEntry {
   ticker: string;
@@ -15,14 +16,6 @@ interface WatchlistState {
   fetchWatchlist: () => Promise<void>;
   addTicker: (ticker: string) => Promise<void>;
   removeTicker: (ticker: string) => Promise<void>;
-}
-
-function errorDetail(err: unknown, fallback: string): string {
-  if (axios.isAxiosError(err)) {
-    const detail = err.response?.data?.detail;
-    if (typeof detail === 'string') return detail;
-  }
-  return fallback;
 }
 
 export const useWatchlistStore = create<WatchlistState>((set, get) => ({
@@ -47,7 +40,7 @@ export const useWatchlistStore = create<WatchlistState>((set, get) => ({
       set({
         loading: false,
         hydrated: true,
-        error: errorDetail(err, 'Failed to load watchlist'),
+        error: formatApiError(err, 'Failed to load watchlist'),
       });
     }
   },
@@ -73,7 +66,7 @@ export const useWatchlistStore = create<WatchlistState>((set, get) => ({
         error: null,
       }));
     } catch (err) {
-      set({ error: errorDetail(err, `Failed to add ${symbol}`) });
+      set({ error: formatApiError(err, `Failed to add ${symbol}`) });
       throw err;
     }
   },
@@ -90,7 +83,7 @@ export const useWatchlistStore = create<WatchlistState>((set, get) => ({
     } catch (err) {
       set({
         tickers: previous,
-        error: errorDetail(err, `Failed to remove ${symbol}`),
+        error: formatApiError(err, `Failed to remove ${symbol}`),
       });
       throw err;
     }

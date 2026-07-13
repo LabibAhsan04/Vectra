@@ -2,6 +2,7 @@ import { useEffect, useState } from 'react';
 import axios from 'axios';
 import type { NewsItem } from '@/types/stock.types';
 import { API_BASE_URL } from '@/utils/constants';
+import { formatApiError } from '@/utils/apiError';
 
 interface NewsPanelProps {
   ticker: string;
@@ -23,17 +24,6 @@ function sentimentClass(sentiment: NewsItem['sentiment']): string {
   if (sentiment === 'bullish') return 'bg-bullish/15 text-bullish';
   if (sentiment === 'bearish') return 'bg-bearish/15 text-bearish';
   return 'bg-muted text-muted-foreground';
-}
-
-function errorMessage(err: unknown, ticker: string): string {
-  if (axios.isAxiosError(err)) {
-    const detail = err.response?.data?.detail;
-    if (typeof detail === 'string') return detail;
-    if (Array.isArray(detail)) {
-      return detail.map((d) => d.msg ?? String(d)).join(', ');
-    }
-  }
-  return `Failed to load news for ${ticker}`;
 }
 
 export default function NewsPanel({
@@ -72,7 +62,7 @@ export default function NewsPanel({
         setError(null);
       } catch (err) {
         if (cancelled || currentRequest !== requestId) return;
-        setError(errorMessage(err, ticker));
+        setError(formatApiError(err, `Failed to load news for ${ticker}`));
         setItems([]);
       } finally {
         if (!cancelled && currentRequest === requestId) {
@@ -88,14 +78,14 @@ export default function NewsPanel({
   }, [ticker]);
 
   return (
-    <section className="rounded-xl border border-border bg-card p-6">
+    <section className="rounded-xl border border-border bg-card p-4 sm:p-6">
       <div className="mb-4 flex items-baseline justify-between gap-3">
         <h3 className="text-lg font-semibold text-foreground">News</h3>
         <span className="text-xs text-muted-foreground">{ticker}</span>
       </div>
 
       {loading && (
-        <div className="space-y-3">
+        <div className="space-y-3" aria-busy="true" aria-label="Loading news">
           {Array.from({ length: 4 }).map((_, index) => (
             <div key={index} className="animate-pulse space-y-2">
               <div className="h-4 w-[80%] rounded bg-muted" />
@@ -106,7 +96,9 @@ export default function NewsPanel({
       )}
 
       {!loading && error && (
-        <p className="text-sm text-bearish">{error}</p>
+        <p className="text-sm text-bearish" role="alert">
+          {error}
+        </p>
       )}
 
       {!loading && !error && items.length === 0 && (
@@ -116,7 +108,7 @@ export default function NewsPanel({
       )}
 
       {!loading && !error && items.length > 0 && (
-        <ul className="space-y-4">
+        <ul className="space-y-4" aria-live="polite">
           {items.map((item, index) => {
             const sentiment =
               sentimentByHeadline[item.headline] ?? item.sentiment;
@@ -127,7 +119,7 @@ export default function NewsPanel({
                 href={item.url}
                 target="_blank"
                 rel="noreferrer"
-                className="block rounded-lg transition hover:bg-muted/40"
+                className="block rounded-lg p-1 -mx-1 transition hover:bg-muted/40"
               >
                 <div className="flex flex-wrap items-center gap-2">
                   <span

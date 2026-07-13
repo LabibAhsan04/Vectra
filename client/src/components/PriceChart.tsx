@@ -11,35 +11,13 @@ import {
 } from 'recharts';
 import type { ChartRange, PriceHistory, PricePoint } from '@/types/stock.types';
 import { API_BASE_URL } from '@/utils/constants';
+import { formatApiError } from '@/utils/apiError';
 import { formatPrice } from '@/utils/formatters';
 
 const RANGES: ChartRange[] = ['1M', '3M', '6M', '1Y', '5Y'];
 
 interface PriceChartProps {
   ticker: string;
-}
-
-function errorMessage(err: unknown, ticker: string): string {
-  if (axios.isAxiosError(err)) {
-    const detail = err.response?.data?.detail;
-    if (typeof detail === 'string') {
-      // Prefer short provider messages; strip huge connection dumps.
-      if (detail.length > 220) {
-        if (/429|rate limit/i.test(detail)) {
-          return `Market data rate limit hit for ${ticker}. Wait a bit and retry.`;
-        }
-        if (/403|don't have access/i.test(detail)) {
-          return `History unavailable for ${ticker} from current API plans. Try again shortly.`;
-        }
-        return `Unable to load chart for ${ticker}. Providers are temporarily unavailable.`;
-      }
-      return detail;
-    }
-    if (!err.response) {
-      return `Cannot reach API at ${API_BASE_URL}. Is the backend running?`;
-    }
-  }
-  return `Failed to load chart for ${ticker}`;
 }
 
 function formatAxisDate(value: string, range: ChartRange): string {
@@ -95,37 +73,27 @@ function yDomain(points: PricePoint[]): [number, number] {
   return [min - pad, max + pad];
 }
 
-export default function PriceChart({ ticker }: PriceChartProps) {
+function PriceChartBody({ ticker }: { ticker: string }) {
   const gradientId = useId().replace(/:/g, '');
   const [range, setRange] = useState<ChartRange>('3M');
+  // Axis labels follow the range that produced `points`, not a failed selection.
+  const [loadedRange, setLoadedRange] = useState<ChartRange>('3M');
+  const [reloadKey, setReloadKey] = useState(0);
   const [points, setPoints] = useState<PricePoint[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
   const requestIdRef = useRef(0);
-  const prevTickerRef = useRef(ticker);
 
   useEffect(() => {
-    if (!ticker) {
-      requestIdRef.current += 1;
-      setPoints([]);
-      setError(null);
-      setLoading(false);
-      prevTickerRef.current = ticker;
-      return;
-    }
-
-    const tickerChanged = prevTickerRef.current !== ticker;
-    prevTickerRef.current = ticker;
-
     const requestId = ++requestIdRef.current;
     let cancelled = false;
+    const hadPoints = points.length > 0;
 
-    // Avoid flashing the previous ticker's series when switching symbols.
-    if (tickerChanged) {
-      setPoints([]);
-    }
+    // Fetch lifecycle: reset UI then load. Sync resets are intentional for ticker/range changes.
+    /* eslint-disable react-hooks/set-state-in-effect -- data-fetch reset before async request */
     setLoading(true);
     setError(null);
+    /* eslint-enable react-hooks/set-state-in-effect */
 
     async function load() {
       try {
@@ -135,11 +103,16 @@ export default function PriceChart({ ticker }: PriceChartProps) {
         );
         if (cancelled || requestId !== requestIdRef.current) return;
         setPoints(data.points ?? []);
+        setLoadedRange(range);
         setError(null);
       } catch (err) {
         if (cancelled || requestId !== requestIdRef.current) return;
-        setError(errorMessage(err, ticker));
-        if (tickerChanged) {
+        setError(
+          formatApiError(err, `Failed to load chart for ${ticker}`, {
+            short: true,
+          }),
+        );
+        if (!hadPoints) {
           setPoints([]);
         }
       } finally {
@@ -153,7 +126,9 @@ export default function PriceChart({ ticker }: PriceChartProps) {
     return () => {
       cancelled = true;
     };
-  }, [ticker, range]);
+    // `points.length` is sampled once per request to keep stale series on range failure.
+    // eslint-disable-next-line react-hooks/exhaustive-deps -- intentionally omit points
+  }, [ticker, range, reloadKey]);
 
   const trendUp = useMemo(() => {
     if (points.length < 2) return true;
@@ -165,61 +140,97 @@ export default function PriceChart({ ticker }: PriceChartProps) {
   const domain = useMemo(() => yDomain(points), [points]);
   const showChart = points.length > 0;
   const showSkeleton = loading && !showChart;
+  const pendingRange = showChart && range !== loadedRange;
 
   return (
-    <section className="rounded-xl border border-border bg-card p-6">
+    <section className="rounded-xl border border-border bg-card p-4 sm:p-6">
       <div className="mb-4 flex flex-wrap items-center justify-between gap-3">
         <h3 className="text-lg font-semibold text-foreground">
           Price Chart
-          {ticker ? (
-            <span className="ml-2 text-sm font-normal text-muted-foreground">
-              {ticker}
-            </span>
-          ) : null}
+          <span className="ml-2 text-sm font-normal text-muted-foreground">
+            {ticker}
+          </span>
         </h3>
-        <div className="flex flex-wrap gap-1">
-          {RANGES.map((option) => (
-            <button
-              key={option}
-              type="button"
-              onClick={() => setRange(option)}
-              className={`rounded-md px-2.5 py-1 text-xs font-medium transition ${
-                range === option
-                  ? 'bg-primary/15 text-primary'
-                  : 'text-muted-foreground hover:text-foreground'
-              }`}
-            >
-              {option}
-            </button>
-          ))}
+        <div className="flex flex-wrap gap-1" role="group" aria-label="Chart range">
+          {RANGES.map((option) => {
+            const isLoaded = loadedRange === option && showChart;
+            const isPending = range === option && loading;
+            return (
+              <button
+                key={option}
+                type="button"
+                onClick={() => setRange(option)}
+                aria-pressed={isLoaded}
+                aria-busy={isPending || undefined}
+                disabled={loading}
+                className={`rounded-md px-2.5 py-1 text-xs font-medium transition disabled:opacity-60 ${
+                  isLoaded
+                    ? 'bg-primary/15 text-primary'
+                    : isPending
+                      ? 'bg-muted text-foreground'
+                      : 'text-muted-foreground hover:text-foreground'
+                }`}
+              >
+                {option}
+              </button>
+            );
+          })}
         </div>
       </div>
 
       {showSkeleton && (
-        <div className="flex h-64 items-center justify-center">
+        <div
+          className="flex h-56 items-center justify-center sm:h-64"
+          aria-busy="true"
+          aria-label="Loading chart"
+        >
           <div className="h-full w-full animate-pulse rounded-lg bg-muted" />
         </div>
       )}
 
       {!loading && error && !showChart && (
-        <p className="flex h-64 items-center justify-center text-sm text-bearish">
-          {error}
-        </p>
+        <div
+          className="flex h-56 flex-col items-center justify-center gap-3 text-center sm:h-64"
+          role="alert"
+        >
+          <p className="text-sm text-bearish">{error}</p>
+          <button
+            type="button"
+            onClick={() => setReloadKey((k) => k + 1)}
+            className="rounded-lg border border-border px-3 py-1.5 text-sm font-medium text-foreground transition hover:border-muted-foreground/50"
+          >
+            Try again
+          </button>
+        </div>
       )}
 
       {!loading && !error && !showChart && (
-        <p className="flex h-64 items-center justify-center text-sm text-muted-foreground">
+        <p className="flex h-56 items-center justify-center text-sm text-muted-foreground sm:h-64">
           No price history available.
         </p>
       )}
 
       {error && showChart && (
-        <p className="mb-2 text-xs text-bearish">{error}</p>
+        <p className="mb-2 text-xs text-bearish" role="status">
+          {pendingRange
+            ? `Couldn’t load ${range}. Showing ${loadedRange} instead. ${error}`
+            : error}{' '}
+          <button
+            type="button"
+            onClick={() => setReloadKey((k) => k + 1)}
+            className="underline underline-offset-2 hover:text-foreground"
+          >
+            Retry
+          </button>
+        </p>
       )}
 
       {showChart && (
-        <div className={`h-64 w-full min-w-0 ${loading ? 'opacity-60' : ''}`}>
-          <ResponsiveContainer width="100%" height="100%" minWidth={0}>
+        <div
+          className={`h-56 w-full min-w-0 sm:h-64 ${loading ? 'opacity-60' : ''}`}
+          aria-live="polite"
+        >
+          <ResponsiveContainer width="100%" height="100%" minWidth={0} debounce={50}>
             <AreaChart
               data={points}
               margin={{ top: 8, right: 8, left: 0, bottom: 0 }}
@@ -233,7 +244,9 @@ export default function PriceChart({ ticker }: PriceChartProps) {
               <CartesianGrid stroke="var(--color-border)" strokeDasharray="3 3" />
               <XAxis
                 dataKey="date"
-                tickFormatter={(value: string) => formatAxisDate(value, range)}
+                tickFormatter={(value: string) =>
+                  formatAxisDate(value, loadedRange)
+                }
                 minTickGap={28}
                 tick={{ fill: 'var(--color-muted-foreground)', fontSize: 11 }}
                 axisLine={{ stroke: 'var(--color-border)' }}
@@ -268,4 +281,16 @@ export default function PriceChart({ ticker }: PriceChartProps) {
       )}
     </section>
   );
+}
+
+export default function PriceChart({ ticker }: PriceChartProps) {
+  if (!ticker) {
+    return (
+      <section className="rounded-xl border border-border bg-card p-4 text-sm text-muted-foreground sm:p-6">
+        Select a ticker to view price history.
+      </section>
+    );
+  }
+
+  return <PriceChartBody ticker={ticker} />;
 }

@@ -10,17 +10,32 @@ interface StockCardProps {
 export default function StockCard({ quote, loading, error }: StockCardProps) {
   if (loading) {
     return (
-      <div className="animate-pulse rounded-xl border border-border bg-card p-6">
+      <div
+        className="animate-pulse rounded-xl border border-border bg-card p-4 sm:p-6"
+        aria-busy="true"
+        aria-label="Loading quote"
+      >
         <div className="mb-4 h-4 w-24 rounded bg-muted" />
-        <div className="mb-2 h-10 w-40 rounded bg-muted" />
-        <div className="h-4 w-32 rounded bg-muted" />
+        <div className="mb-2 h-8 w-28 rounded bg-muted" />
+        <div className="mb-6 h-10 w-40 rounded bg-muted" />
+        <div className="grid grid-cols-2 gap-4 sm:grid-cols-3">
+          {Array.from({ length: 5 }).map((_, i) => (
+            <div key={i} className="space-y-2">
+              <div className="h-3 w-14 rounded bg-muted" />
+              <div className="h-4 w-20 rounded bg-muted" />
+            </div>
+          ))}
+        </div>
       </div>
     );
   }
 
   if (error) {
     return (
-      <div className="rounded-xl border border-bearish/40 bg-card p-6 text-bearish">
+      <div
+        className="rounded-xl border border-bearish/40 bg-card p-4 text-sm text-bearish sm:p-6"
+        role="alert"
+      >
         {error}
       </div>
     );
@@ -28,7 +43,7 @@ export default function StockCard({ quote, loading, error }: StockCardProps) {
 
   if (!quote) {
     return (
-      <div className="rounded-xl border border-border bg-card p-6 text-muted-foreground">
+      <div className="rounded-xl border border-border bg-card p-4 text-sm text-muted-foreground sm:p-6">
         Select a ticker to view quote details.
       </div>
     );
@@ -37,7 +52,7 @@ export default function StockCard({ quote, loading, error }: StockCardProps) {
   const positive = quote.changePct >= 0;
 
   return (
-    <article className="rounded-xl border border-border bg-card p-6">
+    <article className="rounded-xl border border-border bg-card p-4 sm:p-6">
       <div className="mb-1 text-sm text-muted-foreground">{quote.companyName}</div>
       <div className="mb-4 flex items-baseline gap-3">
         <h2 className="text-2xl font-semibold tracking-wide text-foreground">
@@ -73,25 +88,33 @@ export default function StockCard({ quote, loading, error }: StockCardProps) {
         <div>
           <dt className="text-muted-foreground">Volume</dt>
           <dd className="font-medium tabular-nums text-foreground">
-            {quote.volume.toLocaleString()}
+            {Number.isFinite(quote.volume)
+              ? quote.volume.toLocaleString()
+              : '—'}
           </dd>
         </div>
         <div>
           <dt className="text-muted-foreground">Market Cap</dt>
           <dd className="font-medium tabular-nums text-foreground">
-            {formatMarketCap(quote.marketCap)}
+            {Number.isFinite(quote.marketCap)
+              ? formatMarketCap(quote.marketCap)
+              : '—'}
           </dd>
         </div>
         <div>
           <dt className="text-muted-foreground">52W High</dt>
           <dd className="font-medium tabular-nums text-foreground">
-            {formatPrice(quote.weekHigh52)}
+            {Number.isFinite(quote.weekHigh52)
+              ? formatPrice(quote.weekHigh52)
+              : '—'}
           </dd>
         </div>
         <div>
           <dt className="text-muted-foreground">52W Low</dt>
           <dd className="font-medium tabular-nums text-foreground">
-            {formatPrice(quote.weekLow52)}
+            {Number.isFinite(quote.weekLow52)
+              ? formatPrice(quote.weekLow52)
+              : '—'}
           </dd>
         </div>
       </dl>

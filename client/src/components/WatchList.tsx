@@ -55,7 +55,7 @@ export default function WatchList() {
   }
 
   return (
-    <section className="rounded-xl border border-border bg-card p-6">
+    <section className="rounded-xl border border-border bg-card p-4 sm:p-6">
       <div className="mb-4 flex items-center justify-between gap-3">
         <h3 className="text-lg font-semibold text-foreground">Watchlist</h3>
         <span className="text-xs text-muted-foreground">
@@ -70,6 +70,7 @@ export default function WatchList() {
           onChange={(e) => setDraft(e.target.value.toUpperCase())}
           placeholder="Add ticker"
           maxLength={10}
+          aria-label="Ticker symbol"
           className="min-w-0 flex-1 rounded-lg border border-border bg-background px-3 py-2 text-sm text-foreground outline-none placeholder:text-muted-foreground focus:border-muted-foreground/60"
         />
         <button
@@ -81,10 +82,18 @@ export default function WatchList() {
         </button>
       </form>
 
-      {error && <p className="mb-3 text-sm text-bearish">{error}</p>}
+      {error && (
+        <p className="mb-3 text-sm text-bearish" role="alert">
+          {error}
+        </p>
+      )}
 
       {loading && !hydrated && (
-        <div className="animate-pulse space-y-2">
+        <div
+          className="animate-pulse space-y-2"
+          aria-busy="true"
+          aria-label="Loading watchlist"
+        >
           <div className="h-10 rounded-lg bg-muted" />
           <div className="h-10 rounded-lg bg-muted" />
           <div className="h-10 rounded-lg bg-muted" />
@@ -98,7 +107,7 @@ export default function WatchList() {
       )}
 
       {tickers.length > 0 && (
-        <ul className="space-y-2">
+        <ul className="space-y-2" aria-label="Watchlist symbols">
           {tickers.map((ticker) => {
             const isActive = ticker === activeTicker;
             return (
@@ -113,6 +122,7 @@ export default function WatchList() {
                   <button
                     type="button"
                     onClick={() => setActiveTicker(ticker)}
+                    aria-pressed={isActive}
                     className="min-w-0 flex-1 text-left text-sm font-semibold tracking-wide text-foreground"
                   >
                     {ticker}

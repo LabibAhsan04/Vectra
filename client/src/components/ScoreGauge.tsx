@@ -1,4 +1,4 @@
-import { useEffect, useState } from 'react';
+import { useEffect, useRef, useState } from 'react';
 
 interface ScoreGaugeProps {
   score: number;
@@ -35,28 +35,37 @@ export default function ScoreGauge({
 }: ScoreGaugeProps) {
   const target = clampScore(score);
   const [display, setDisplay] = useState(target);
+  const displayRef = useRef(display);
 
   useEffect(() => {
     let cancelled = false;
+    let frame = 0;
     const reduceMotion =
       typeof window !== 'undefined' &&
       window.matchMedia('(prefers-reduced-motion: reduce)').matches;
 
-    if (reduceMotion) {
-      setDisplay(target);
-      return;
+    const from = displayRef.current;
+    if (reduceMotion || from === target) {
+      displayRef.current = target;
+      frame = requestAnimationFrame(() => {
+        if (!cancelled) setDisplay(target);
+      });
+      return () => {
+        cancelled = true;
+        cancelAnimationFrame(frame);
+      };
     }
 
-    setDisplay(0);
     const durationMs = 700;
     const start = performance.now();
-    let frame = 0;
 
     const tick = (now: number) => {
       if (cancelled) return;
       const t = Math.min(1, (now - start) / durationMs);
       const eased = 1 - (1 - t) ** 3;
-      setDisplay(Math.round(target * eased));
+      const next = Math.round(from + (target - from) * eased);
+      displayRef.current = next;
+      setDisplay(next);
       if (t < 1) {
         frame = requestAnimationFrame(tick);
       }

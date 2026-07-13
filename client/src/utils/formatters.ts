@@ -1,4 +1,5 @@
 export function formatPrice(price: number): string {
+  if (!Number.isFinite(price)) return '—';
   return new Intl.NumberFormat('en-US', {
     style: 'currency',
     currency: 'USD',
@@ -8,13 +9,16 @@ export function formatPrice(price: number): string {
 }
 
 export function formatChangePct(changePct: number): string {
+  if (!Number.isFinite(changePct)) return '—';
   const sign = changePct >= 0 ? '+' : '';
   return `${sign}${changePct.toFixed(2)}%`;
 }
 
 export function formatMarketCap(value: number): string {
+  if (!Number.isFinite(value)) return '—';
   if (value >= 1e12) return `$${(value / 1e12).toFixed(2)}T`;
   if (value >= 1e9) return `$${(value / 1e9).toFixed(2)}B`;
   if (value >= 1e6) return `$${(value / 1e6).toFixed(2)}M`;
   return `$${value.toLocaleString()}`;
 }
+
