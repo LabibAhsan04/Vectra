@@ -1,8 +1,9 @@
 import { useEffect, useRef, useState } from 'react';
+import { getSignalMeta } from '@/utils/signalLabels';
 
 interface ScoreGaugeProps {
   score: number;
-  signal?: 'buy' | 'hold' | 'sell';
+  signal?: string;
   size?: number;
   className?: string;
 }
@@ -12,19 +13,10 @@ function clampScore(score: number): number {
   return Math.max(0, Math.min(100, Math.round(score)));
 }
 
-function scoreColor(score: number): string {
-  if (score >= 65) return 'var(--color-bullish)';
-  if (score <= 40) return 'var(--color-bearish)';
+function scoreColor(tone: 'bullish' | 'neutral' | 'bearish'): string {
+  if (tone === 'bullish') return 'var(--color-bullish)';
+  if (tone === 'bearish') return 'var(--color-bearish)';
   return 'var(--color-neutral)';
-}
-
-function signalLabel(signal: ScoreGaugeProps['signal'], score: number): string {
-  if (signal === 'buy' || signal === 'hold' || signal === 'sell') {
-    return signal.toUpperCase();
-  }
-  if (score >= 65) return 'BUY';
-  if (score <= 40) return 'SELL';
-  return 'HOLD';
 }
 
 export default function ScoreGauge({
@@ -34,6 +26,7 @@ export default function ScoreGauge({
   className = '',
 }: ScoreGaugeProps) {
   const target = clampScore(score);
+  const meta = getSignalMeta(signal, target);
   const [display, setDisplay] = useState(target);
   const displayRef = useRef(display);
 
@@ -82,14 +75,14 @@ export default function ScoreGauge({
   const radius = (size - stroke) / 2;
   const circumference = 2 * Math.PI * radius;
   const offset = circumference * (1 - display / 100);
-  const color = scoreColor(target);
+  const color = scoreColor(meta.tone);
 
   return (
     <div
       className={`relative inline-flex items-center justify-center ${className}`}
       style={{ width: size, height: size }}
       role="img"
-      aria-label={`Score ${target} out of 100, ${signalLabel(signal, target)}`}
+      aria-label={`Score ${target} out of 100, ${meta.short} research signal`}
     >
       <svg width={size} height={size} className="-rotate-90" aria-hidden>
         <circle
@@ -113,12 +106,23 @@ export default function ScoreGauge({
           style={{ transition: 'stroke 200ms ease' }}
         />
       </svg>
-      <div className="absolute inset-0 flex flex-col items-center justify-center">
+      <div className="absolute inset-0 flex flex-col items-center justify-center px-2 text-center">
         <span className="text-3xl font-semibold tabular-nums text-foreground">
           {display}
         </span>
-        <span className="text-[11px] font-medium uppercase tracking-wide text-muted-foreground">
-          {signalLabel(signal, target)}
+        <span
+          className={`text-[11px] font-semibold tracking-wide ${
+            meta.tone === 'bullish'
+              ? 'text-bullish'
+              : meta.tone === 'bearish'
+                ? 'text-bearish'
+                : 'text-muted-foreground'
+          }`}
+        >
+          {meta.short}
+        </span>
+        <span className="text-[10px] uppercase tracking-wide text-muted-foreground">
+          Research Signal
         </span>
       </div>
     </div>

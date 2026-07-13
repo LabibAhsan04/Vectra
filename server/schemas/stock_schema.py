@@ -39,6 +39,8 @@ class NewsItem(BaseModel):
     publishedAt: datetime
     sentiment: str = "neutral"
     sentimentScore: float = 0.0
+    relevance: str = "company"  # company | sector | market | competitor | etf
+    section: str = "company"  # company | market
 
 
 class FactorScores(BaseModel):
@@ -63,11 +65,21 @@ class AIAnalysisResponse(BaseModel):
     ticker: str
     overallScore: int = Field(ge=0, le=100)
     signal: str
+    signalLabel: str = "Neutral Signal"
+    signalShort: str = "Neutral"
+    signalTone: str = "neutral"
     analysisText: str
+    scoreInterpretation: str = ""
     scores: FactorScores
     newsItems: list[NewsSentiment] = []
     keyRisks: list[str] = []
     keyCatalysts: list[str] = []
+    whyThisSignal: list[str] = []
+    whatCouldChange: list[str] = []
+    dataLimitations: list[str] = []
+    fundamentalsAvailable: bool = False
+    sourcesUsed: list[str] = []
+    explanationSource: str = "template"
     generatedAt: datetime
 
 

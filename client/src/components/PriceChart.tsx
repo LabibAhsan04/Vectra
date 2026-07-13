@@ -4,6 +4,8 @@ import {
   Area,
   AreaChart,
   CartesianGrid,
+  Legend,
+  Line,
   ResponsiveContainer,
   Tooltip,
   XAxis,
@@ -16,8 +18,36 @@ import { formatPrice } from '@/utils/formatters';
 
 const RANGES: ChartRange[] = ['1M', '3M', '6M', '1Y', '5Y'];
 
+const RANGE_LABELS: Record<ChartRange, string> = {
+  '1M': '1 month',
+  '3M': '3 months',
+  '6M': '6 months',
+  '1Y': '1 year',
+  '5Y': '5 years',
+};
+
 interface PriceChartProps {
   ticker: string;
+}
+
+type ChartRow = PricePoint & { ma20?: number | null; ma50?: number | null };
+
+function withMovingAverages(points: PricePoint[]): ChartRow[] {
+  return points.map((point, index) => {
+    const ma20Window = points.slice(Math.max(0, index - 19), index + 1);
+    const ma50Window = points.slice(Math.max(0, index - 49), index + 1);
+    return {
+      ...point,
+      ma20:
+        ma20Window.length >= 20
+          ? ma20Window.reduce((sum, p) => sum + p.close, 0) / ma20Window.length
+          : null,
+      ma50:
+        ma50Window.length >= 50
+          ? ma50Window.reduce((sum, p) => sum + p.close, 0) / ma50Window.length
+          : null,
+    };
+  });
 }
 
 function formatAxisDate(value: string, range: ChartRange): string {
@@ -138,19 +168,24 @@ function PriceChartBody({ ticker }: { ticker: string }) {
   const stroke = trendUp ? 'var(--color-bullish)' : 'var(--color-bearish)';
   const fillId = `price-fill-${gradientId}`;
   const domain = useMemo(() => yDomain(points), [points]);
+  const chartRows = useMemo(() => withMovingAverages(points), [points]);
   const showChart = points.length > 0;
   const showSkeleton = loading && !showChart;
   const pendingRange = showChart && range !== loadedRange;
+  const showMa20 = chartRows.some((p) => p.ma20 != null);
+  const showMa50 = chartRows.some((p) => p.ma50 != null);
 
   return (
     <section className="rounded-xl border border-border bg-card p-4 sm:p-6">
       <div className="mb-4 flex flex-wrap items-center justify-between gap-3">
-        <h3 className="text-lg font-semibold text-foreground">
-          Price Chart
-          <span className="ml-2 text-sm font-normal text-muted-foreground">
-            {ticker}
-          </span>
-        </h3>
+        <div>
+          <h3 className="text-lg font-semibold text-foreground">
+            {ticker} price trend
+          </h3>
+          <p className="text-sm text-muted-foreground">
+            {RANGE_LABELS[loadedRange] ?? loadedRange}
+          </p>
+        </div>
         <div className="flex flex-wrap gap-1" role="group" aria-label="Chart range">
           {RANGES.map((option) => {
             const isLoaded = loadedRange === option && showChart;
@@ -232,7 +267,7 @@ function PriceChartBody({ ticker }: { ticker: string }) {
         >
           <ResponsiveContainer width="100%" height="100%" minWidth={0} debounce={50}>
             <AreaChart
-              data={points}
+              data={chartRows}
               margin={{ top: 8, right: 8, left: 0, bottom: 0 }}
             >
               <defs>
@@ -265,9 +300,15 @@ function PriceChartBody({ ticker }: { ticker: string }) {
                 tickLine={false}
               />
               <Tooltip content={<ChartTooltip />} />
+              <Legend
+                verticalAlign="top"
+                height={24}
+                wrapperStyle={{ fontSize: 11, color: 'var(--color-muted-foreground)' }}
+              />
               <Area
                 type="monotone"
                 dataKey="close"
+                name="Close"
                 stroke={stroke}
                 fill={`url(#${fillId})`}
                 strokeWidth={2}
@@ -275,6 +316,31 @@ function PriceChartBody({ ticker }: { ticker: string }) {
                 isAnimationActive={!loading}
                 animationDuration={500}
               />
+              {showMa20 ? (
+                <Line
+                  type="monotone"
+                  dataKey="ma20"
+                  name="MA20"
+                  stroke="var(--color-muted-foreground)"
+                  strokeWidth={1.25}
+                  dot={false}
+                  connectNulls={false}
+                  isAnimationActive={false}
+                />
+              ) : null}
+              {showMa50 ? (
+                <Line
+                  type="monotone"
+                  dataKey="ma50"
+                  name="MA50"
+                  stroke="#a1a1aa"
+                  strokeDasharray="4 4"
+                  strokeWidth={1.25}
+                  dot={false}
+                  connectNulls={false}
+                  isAnimationActive={false}
+                />
+              ) : null}
             </AreaChart>
           </ResponsiveContainer>
         </div>

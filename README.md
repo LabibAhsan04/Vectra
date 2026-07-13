@@ -1,8 +1,38 @@
 # Vectra
 
-Stock intelligence dashboard — live prices, news aggregation, sentiment scoring, and model-generated buy/hold/sell analysis for tech stocks.
+Evidence-based stock **signal intelligence** dashboard — live prices, classified news, composite research scores, and model-assisted explanations for tech stocks.
 
-> **Disclaimer:** Research and learning tool only. Does not execute trades. Always do your own research before investing.
+> **Disclaimer:** Vectra provides evidence-based research signals only. It does **not** provide financial advice, does **not** tell you what to buy/sell, and does **not** execute trades. Always do your own research.
+
+## What Vectra is (and isn’t)
+
+| Vectra does | Vectra does not |
+|-------------|-----------------|
+| Score evidence (momentum, technicals, sentiment, growth, data quality) | Execute trades |
+| Label signals as Bullish / Neutral / Bearish research readings | Issue personal investment advice |
+| Use AI to *explain* scores and risks | Let the LLM invent fundamentals or override the score engine |
+| Separate company news from sector/market news | Guarantee outcomes or price targets |
+
+### Scoring categories
+
+- **Momentum** — price movement and volume strength
+- **Technical** — trend structure / moving-average context
+- **Sentiment** — tone of recent headlines
+- **Growth** — catalyst/expansion clues from available inputs
+- **Fundamentals/Data Quality** — filings-quality pillar (often limited on free APIs)
+
+Thresholds: Strong Bullish ≥80, Bullish ≥65, Neutral mid-range, Bearish ≤40, Strong Bearish ≤20.
+
+### Data sources & free-API limits
+
+- Quotes / history: Polygon → Finnhub → Alpha Vantage (history fallback)
+- News: Finnhub (company feed, then relevance-tagged)
+- Explanations: OpenRouter (with deterministic template fallback)
+- Free tiers can rate-limit, delay, or omit fundamental filings — the UI surfaces those limitations instead of inventing numbers.
+
+### AI role
+
+OpenRouter is used only for **explanation**. The composite score and signal label are computed server-side. If OpenRouter fails, Vectra still returns a template explanation from the score, reasons, and risks.
 
 ## Tech stack
 
@@ -54,7 +84,7 @@ Vectra/
 ## Phase 6 — Score gauge
 
 - [x] Weighted composite 0–100 score from factor scores
-- [x] Animated circular `ScoreGauge` in the AI Analysis panel
+- [x] Animated circular `ScoreGauge` in the Evidence Analysis panel
 
 ## Phase 7 — Price charts
 
@@ -80,6 +110,15 @@ Vectra/
 - [x] Railway-ready FastAPI (`PORT`, healthcheck, `railway.toml`)
 - [x] Vercel-ready Vite app (`vercel.json`)
 - [x] Production CORS (`ALLOWED_ORIGINS` + Vercel preview regex)
+
+## Research-signal UX
+
+- [x] Bullish / Neutral / Bearish research labels (with optional BUY/SELL brackets)
+- [x] Evidence Analysis card: drivers, why/what-could-change, limitations, sources
+- [x] Fundamentals/Data Quality treated as limited on free APIs
+- [x] Company vs Market & Sector news split + relevance tags
+- [x] OpenRouter template fallback + caching
+- [x] Chart MA20/MA50 + research footer / disclaimer
 
 ### Backend — Railway
 

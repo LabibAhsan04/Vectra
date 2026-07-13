@@ -29,6 +29,13 @@ export interface PriceHistory {
   points: PricePoint[];
 }
 
+export type NewsRelevance =
+  | 'company'
+  | 'sector'
+  | 'market'
+  | 'competitor'
+  | 'etf';
+
 export interface NewsItem {
   headline: string;
   source: string;
@@ -36,13 +43,26 @@ export interface NewsItem {
   publishedAt: string;
   sentiment: 'bullish' | 'bearish' | 'neutral';
   sentimentScore: number;
+  relevance?: NewsRelevance | string;
+  section?: 'company' | 'market' | string;
 }
+
+export type ResearchSignal =
+  | 'strong_buy'
+  | 'buy'
+  | 'hold'
+  | 'sell'
+  | 'strong_sell';
 
 export interface AIAnalysis {
   ticker: string;
   overallScore: number;
-  signal: 'buy' | 'hold' | 'sell';
+  signal: ResearchSignal | string;
+  signalLabel?: string;
+  signalShort?: string;
+  signalTone?: 'bullish' | 'neutral' | 'bearish' | string;
   analysisText: string;
+  scoreInterpretation?: string;
   scores: {
     momentum: number;
     fundamentals: number;
@@ -56,5 +76,11 @@ export interface AIAnalysis {
   }>;
   keyRisks: string[];
   keyCatalysts: string[];
+  whyThisSignal?: string[];
+  whatCouldChange?: string[];
+  dataLimitations?: string[];
+  fundamentalsAvailable?: boolean;
+  sourcesUsed?: string[];
+  explanationSource?: 'openrouter' | 'template' | string;
   generatedAt: string;
 }

@@ -1,4 +1,4 @@
-import { useEffect, useState } from 'react';
+import { useEffect, useMemo, useState } from 'react';
 import axios from 'axios';
 import type { NewsItem } from '@/types/stock.types';
 import { API_BASE_URL } from '@/utils/constants';
@@ -6,6 +6,7 @@ import { formatApiError } from '@/utils/apiError';
 
 interface NewsPanelProps {
   ticker: string;
+  companyName?: string;
   sentimentByHeadline?: Record<string, NewsItem['sentiment']>;
 }
 
@@ -26,8 +27,78 @@ function sentimentClass(sentiment: NewsItem['sentiment']): string {
   return 'bg-muted text-muted-foreground';
 }
 
+function relevanceLabel(relevance?: string): string {
+  switch ((relevance || 'company').toLowerCase()) {
+    case 'sector':
+      return 'Sector';
+    case 'market':
+      return 'Market';
+    case 'competitor':
+      return 'Competitor';
+    case 'etf':
+      return 'ETF/Broad Market';
+    default:
+      return 'Company';
+  }
+}
+
+function NewsList({
+  items,
+  sentimentByHeadline,
+  emptyMessage,
+}: {
+  items: NewsItem[];
+  sentimentByHeadline: Record<string, NewsItem['sentiment']>;
+  emptyMessage: string;
+}) {
+  if (items.length === 0) {
+    return <p className="text-sm text-muted-foreground">{emptyMessage}</p>;
+  }
+
+  return (
+    <ul className="space-y-4" aria-live="polite">
+      {items.map((item, index) => {
+        const sentiment =
+          sentimentByHeadline[item.headline] ?? item.sentiment;
+
+        return (
+          <li key={`${item.url}-${item.publishedAt}-${index}`}>
+            <a
+              href={item.url}
+              target="_blank"
+              rel="noreferrer"
+              className="-mx-1 block rounded-lg p-1 transition hover:bg-muted/40"
+            >
+              <div className="flex flex-wrap items-center gap-2">
+                <span
+                  className={`rounded px-2 py-0.5 text-[11px] font-medium uppercase tracking-wide ${sentimentClass(sentiment)}`}
+                >
+                  {sentiment}
+                </span>
+                <span className="rounded px-2 py-0.5 text-[11px] font-medium tracking-wide bg-muted text-muted-foreground">
+                  {relevanceLabel(item.relevance)}
+                </span>
+                <span className="text-xs text-muted-foreground">
+                  {item.source}
+                </span>
+                <span className="text-xs text-muted-foreground">
+                  {formatPublishedAt(item.publishedAt)}
+                </span>
+              </div>
+              <p className="mt-1 text-sm font-medium leading-snug text-foreground">
+                {item.headline}
+              </p>
+            </a>
+          </li>
+        );
+      })}
+    </ul>
+  );
+}
+
 export default function NewsPanel({
   ticker,
+  companyName,
   sentimentByHeadline = {},
 }: NewsPanelProps) {
   const [items, setItems] = useState<NewsItem[]>([]);
@@ -35,27 +106,21 @@ export default function NewsPanel({
   const [error, setError] = useState<string | null>(null);
 
   useEffect(() => {
-    if (!ticker) {
-      setItems([]);
-      setError(null);
-      setLoading(false);
-      return;
-    }
-
     let cancelled = false;
     let requestId = 0;
 
-    // Reset synchronously so the previous ticker's headlines don't flash
+    /* eslint-disable react-hooks/set-state-in-effect -- fetch reset before async load */
     setItems([]);
     setError(null);
     setLoading(true);
+    /* eslint-enable react-hooks/set-state-in-effect */
 
     async function load() {
       const currentRequest = ++requestId;
       try {
         const { data } = await axios.get<NewsItem[]>(
           `${API_BASE_URL}/api/news/${encodeURIComponent(ticker)}`,
-          { params: { limit: 8 } },
+          { params: { limit: 12 } },
         );
         if (cancelled || currentRequest !== requestId) return;
         setItems(data);
@@ -77,11 +142,23 @@ export default function NewsPanel({
     };
   }, [ticker]);
 
+  const { companyNews, marketNews } = useMemo(() => {
+    const company: NewsItem[] = [];
+    const market: NewsItem[] = [];
+    for (const item of items) {
+      if ((item.section || 'company') === 'company') company.push(item);
+      else market.push(item);
+    }
+    return { companyNews: company, marketNews: market };
+  }, [items]);
+
   return (
     <section className="rounded-xl border border-border bg-card p-4 sm:p-6">
       <div className="mb-4 flex items-baseline justify-between gap-3">
         <h3 className="text-lg font-semibold text-foreground">News</h3>
-        <span className="text-xs text-muted-foreground">{ticker}</span>
+        <span className="text-xs text-muted-foreground">
+          {companyName ? `${ticker} · ${companyName}` : ticker}
+        </span>
       </div>
 
       {loading && (
@@ -101,47 +178,29 @@ export default function NewsPanel({
         </p>
       )}
 
-      {!loading && !error && items.length === 0 && (
-        <p className="text-sm text-muted-foreground">
-          No recent headlines for this ticker.
-        </p>
-      )}
-
-      {!loading && !error && items.length > 0 && (
-        <ul className="space-y-4" aria-live="polite">
-          {items.map((item, index) => {
-            const sentiment =
-              sentimentByHeadline[item.headline] ?? item.sentiment;
-
-            return (
-            <li key={`${item.url}-${item.publishedAt}-${index}`}>
-              <a
-                href={item.url}
-                target="_blank"
-                rel="noreferrer"
-                className="block rounded-lg p-1 -mx-1 transition hover:bg-muted/40"
-              >
-                <div className="flex flex-wrap items-center gap-2">
-                  <span
-                    className={`rounded px-2 py-0.5 text-[11px] font-medium uppercase tracking-wide ${sentimentClass(sentiment)}`}
-                  >
-                    {sentiment}
-                  </span>
-                  <span className="text-xs text-muted-foreground">
-                    {item.source}
-                  </span>
-                  <span className="text-xs text-muted-foreground">
-                    {formatPublishedAt(item.publishedAt)}
-                  </span>
-                </div>
-                <p className="mt-1 text-sm font-medium leading-snug text-foreground">
-                  {item.headline}
-                </p>
-              </a>
-            </li>
-            );
-          })}
-        </ul>
+      {!loading && !error && (
+        <div className="space-y-6">
+          <div>
+            <h4 className="mb-3 text-sm font-semibold text-foreground">
+              Company News
+            </h4>
+            <NewsList
+              items={companyNews}
+              sentimentByHeadline={sentimentByHeadline}
+              emptyMessage="No recent company-specific news found."
+            />
+          </div>
+          <div>
+            <h4 className="mb-3 text-sm font-semibold text-foreground">
+              Market & Sector News
+            </h4>
+            <NewsList
+              items={marketNews}
+              sentimentByHeadline={sentimentByHeadline}
+              emptyMessage="No recent market or sector headlines in this feed."
+            />
+          </div>
+        </div>
       )}
     </section>
   );

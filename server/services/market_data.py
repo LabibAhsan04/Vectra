@@ -20,6 +20,10 @@ _finnhub_client: finnhub.Client | None = None
 _history_cache: dict[str, tuple[datetime, PriceHistory]] = {}
 _HISTORY_CACHE_MINUTES = 15
 
+# Short quote cache to cut provider rate-limit pressure
+_quote_cache: dict[str, tuple[datetime, StockQuote]] = {}
+_QUOTE_CACHE_SECONDS = max(30, min(120, int(getattr(settings, "cache_ttl_seconds", 60) or 60)))
+
 
 def _get_polygon() -> RESTClient:
     global _polygon_client
@@ -137,15 +141,34 @@ def get_stock_quote(ticker: str) -> StockQuote:
     if not symbol:
         raise HTTPException(status_code=400, detail="Ticker is required")
 
+    cached = _quote_cache.get(symbol)
+    if cached is not None:
+        expires_at, quote = cached
+        if datetime.now(tz=timezone.utc) < expires_at:
+            return quote
+
     polygon_error: Exception | None = None
     try:
-        return _quote_from_polygon(symbol)
+        quote = _quote_from_polygon(symbol)
+        _quote_cache[symbol] = (
+            datetime.now(tz=timezone.utc) + timedelta(seconds=_QUOTE_CACHE_SECONDS),
+            quote,
+        )
+        return quote
     except Exception as exc:
         polygon_error = exc
 
     try:
-        return _quote_from_finnhub(symbol)
+        quote = _quote_from_finnhub(symbol)
+        _quote_cache[symbol] = (
+            datetime.now(tz=timezone.utc) + timedelta(seconds=_QUOTE_CACHE_SECONDS),
+            quote,
+        )
+        return quote
     except Exception as finnhub_error:
+        # Serve last good quote briefly during outages/rate limits.
+        if cached is not None:
+            return cached[1]
         detail = (
             f"Unable to fetch quote for '{symbol}'. "
             f"Polygon: {polygon_error}; Finnhub: {finnhub_error}"

@@ -22,15 +22,37 @@ export default function Dashboard() {
     return map;
   }, [analysis]);
 
+  const lastUpdated = useMemo(() => {
+    const stamp = data?.timestamp || analysis?.generatedAt;
+    if (!stamp) return null;
+    const date = new Date(stamp);
+    if (Number.isNaN(date.getTime())) return null;
+    return date.toLocaleString(undefined, {
+      month: 'short',
+      day: 'numeric',
+      hour: 'numeric',
+      minute: '2-digit',
+    });
+  }, [data?.timestamp, analysis?.generatedAt]);
+
   return (
     <div className="min-h-screen bg-background px-4 py-6 sm:px-6">
       <header className="mb-6">
-        <h1 className="text-3xl font-bold tracking-tight text-foreground">
-          Vectra
-        </h1>
-        <p className="mt-1 text-sm text-muted-foreground">
-          Stock intelligence dashboard
-        </p>
+        <div className="flex flex-wrap items-end justify-between gap-3">
+          <div>
+            <h1 className="text-3xl font-bold tracking-tight text-foreground">
+              Vectra
+            </h1>
+            <p className="mt-1 text-sm text-muted-foreground">
+              Evidence-based stock signal intelligence
+            </p>
+          </div>
+          {lastUpdated ? (
+            <p className="text-xs text-muted-foreground">
+              Last updated: {lastUpdated}
+            </p>
+          ) : null}
+        </div>
       </header>
 
       <TickerBar />
@@ -48,11 +70,18 @@ export default function Dashboard() {
         <div className="order-1 space-y-6 lg:order-2">
           <WatchList />
           <NewsPanel
+            key={`news-${activeTicker}`}
             ticker={activeTicker}
+            companyName={data?.companyName}
             sentimentByHeadline={sentimentByHeadline}
           />
         </div>
       </main>
+
+      <footer className="mt-10 border-t border-border pt-4 text-center text-xs text-muted-foreground">
+        <p>Vectra — Evidence-based stock signal intelligence.</p>
+        <p className="mt-1">Built for research and educational use.</p>
+      </footer>
     </div>
   );
 }
