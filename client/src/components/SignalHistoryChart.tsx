@@ -54,7 +54,7 @@ export default function SignalHistoryChart({
     () =>
       points.map((p) => ({
         ...p,
-        label: getSignalMeta(p.finalLabel, p.finalScore).short,
+        label: getSignalMeta(p.finalLabel, p.finalScore).label,
         t: new Date(p.timestamp).toLocaleString(undefined, {
           month: 'short',
           day: 'numeric',

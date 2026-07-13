@@ -27,6 +27,12 @@ function sentimentClass(sentiment: NewsItem['sentiment']): string {
   return 'bg-muted text-muted-foreground';
 }
 
+function sentimentLabel(sentiment: NewsItem['sentiment']): string {
+  if (sentiment === 'bullish') return 'Bullish';
+  if (sentiment === 'bearish') return 'Bearish';
+  return 'Neutral';
+}
+
 function relevanceLabel(relevance?: string): string {
   switch ((relevance || 'company').toLowerCase()) {
     case 'sector':
@@ -36,7 +42,7 @@ function relevanceLabel(relevance?: string): string {
     case 'competitor':
       return 'Competitor';
     case 'etf':
-      return 'ETF/Broad Market';
+      return 'ETF';
     default:
       return 'Company';
   }
@@ -71,15 +77,12 @@ function NewsList({
             >
               <div className="flex flex-wrap items-center gap-2">
                 <span
-                  className={`rounded px-2 py-0.5 text-[11px] font-medium uppercase tracking-wide ${sentimentClass(sentiment)}`}
+                  className={`rounded px-2 py-0.5 text-[11px] font-medium tracking-wide ${sentimentClass(sentiment)}`}
                 >
-                  {sentiment}
+                  {sentimentLabel(sentiment)}
                 </span>
                 <span className="rounded px-2 py-0.5 text-[11px] font-medium tracking-wide bg-muted text-muted-foreground">
                   {relevanceLabel(item.relevance)}
-                  {typeof item.relevanceScore === 'number'
-                    ? ` · ${item.relevanceScore}`
-                    : ''}
                 </span>
                 <span className="text-xs text-muted-foreground">
                   {item.source}
@@ -201,7 +204,7 @@ export default function NewsPanel({
             <NewsList
               items={companyNews}
               sentimentByHeadline={sentimentByHeadline}
-              emptyMessage="No recent company-specific news found."
+              emptyMessage="No recent company-specific news found for this ticker."
             />
           </div>
           <div>

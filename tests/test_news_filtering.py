@@ -44,13 +44,12 @@ def test_etf_news():
     assert section == "market"
 
 
-def test_unrelated_defaults_to_company_for_company_feed():
+def test_unrelated_goes_to_market_without_company_mention():
     relevance, section, score = classify_news_relevance(
         "Regional bank loan books stabilize quietly",
         "NVDA",
         company_name="NVIDIA Corporation",
     )
-    # Finnhub company feed default when no rival/market cues.
-    assert section == "company"
-    assert relevance == "company"
-    assert score == 70
+    assert section == "market"
+    assert relevance == "market"
+    assert score == 35

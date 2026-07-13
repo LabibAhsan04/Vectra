@@ -11,7 +11,7 @@ Vectra demonstrates a production-minded CS/fintech portfolio stack: live market 
 | Vectra does | Vectra does not |
 |-------------|-----------------|
 | Score evidence across momentum, technicals, sentiment, growth, data quality | Execute trades |
-| Label **Bullish / Neutral / Bearish** research signals | Give buy/sell/hold advice or price targets |
+| Label **Bullish / Neutral / Bearish** research signals | Give financial advice or trade instructions |
 | Explain scores with OpenRouter (or a template fallback) | Let the LLM invent fundamentals or override scores |
 | Split company vs market/sector news with relevance scores | Guarantee outcomes |
 
@@ -67,7 +67,8 @@ Full methodology: [docs/scoring_methodology.md](docs/scoring_methodology.md).
 
 - Uses only structured evidence (scores, notes, headlines already fetched)
 - Must not invent revenue, earnings, margins, partnerships, or analyst upgrades
-- Must not use buy/sell/hold, guaranteed, or price-target language
+- Must not use trade-command language or price targets in public explanations
+- BUY/HOLD/SELL may appear only as internal shorthand inside the score circle
 - Cached ~45 minutes per ticker + score + label; template if OpenRouter fails
 
 ## Database Schema

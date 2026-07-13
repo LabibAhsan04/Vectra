@@ -25,65 +25,75 @@ STRONG_BEARISH_THRESHOLD = 20
 
 SIGNAL_DISPLAY: dict[str, dict[str, str]] = {
     "strong_bullish": {
-        "label": "Strong Bullish",
-        "short": "Strong Bullish",
+        "label": "Bullish Signal",
+        "short": "Bullish",
         "tone": "bullish",
-        "evidence": "current evidence is strongly bullish",
+        "evidence": "current evidence is bullish",
+        "internal": "BUY",
     },
     "bullish": {
         "label": "Bullish Signal",
         "short": "Bullish",
         "tone": "bullish",
         "evidence": "current evidence is bullish",
+        "internal": "BUY",
     },
     "neutral": {
         "label": "Neutral Signal",
         "short": "Neutral",
         "tone": "neutral",
         "evidence": "current evidence is mixed / cautious",
+        "internal": "HOLD",
     },
     "bearish": {
         "label": "Bearish Signal",
         "short": "Bearish",
         "tone": "bearish",
         "evidence": "current evidence is cautious",
+        "internal": "SELL",
     },
     "strong_bearish": {
-        "label": "Strong Bearish",
-        "short": "Strong Bearish",
+        "label": "Bearish Signal",
+        "short": "Bearish",
         "tone": "bearish",
-        "evidence": "current evidence is strongly cautious",
+        "evidence": "current evidence is cautious",
+        "internal": "SELL",
     },
-    # Legacy API codes mapped for cache/back-compat.
+    # Legacy API codes
     "strong_buy": {
-        "label": "Strong Bullish",
-        "short": "Strong Bullish",
+        "label": "Bullish Signal",
+        "short": "Bullish",
         "tone": "bullish",
-        "evidence": "current evidence is strongly bullish",
+        "evidence": "current evidence is bullish",
+        "internal": "BUY",
     },
     "buy": {
         "label": "Bullish Signal",
         "short": "Bullish",
         "tone": "bullish",
         "evidence": "current evidence is bullish",
+        "internal": "BUY",
     },
     "hold": {
         "label": "Neutral Signal",
         "short": "Neutral",
         "tone": "neutral",
         "evidence": "current evidence is mixed / cautious",
+        "internal": "HOLD",
     },
     "sell": {
         "label": "Bearish Signal",
         "short": "Bearish",
         "tone": "bearish",
         "evidence": "current evidence is cautious",
+        "internal": "SELL",
     },
     "strong_sell": {
-        "label": "Strong Bearish",
-        "short": "Strong Bearish",
+        "label": "Bearish Signal",
+        "short": "Bearish",
         "tone": "bearish",
-        "evidence": "current evidence is strongly cautious",
+        "evidence": "current evidence is cautious",
+        "internal": "SELL",
     },
 }
 
@@ -151,14 +161,14 @@ def score_interpretation(score: int, signal: str) -> str:
 
 def score_bucket(score: int) -> str:
     if score >= 80:
-        return "80–100 Strong Bullish"
+        return "80–100 Bullish (strong)"
     if score >= 65:
         return "65–79 Bullish"
     if score >= 45:
         return "45–64 Neutral"
     if score >= 30:
         return "30–44 Bearish"
-    return "0–29 Strong Bearish"
+    return "0–29 Bearish (strong)"
 
 
 def build_score_breakdown(
@@ -179,6 +189,8 @@ def build_score_breakdown(
                 "label": (
                     "Fundamentals/Data Quality"
                     if key == "fundamentals"
+                    else "Growth/Catalysts"
+                    if key == "growth"
                     else key.capitalize()
                 ),
                 "score": value,

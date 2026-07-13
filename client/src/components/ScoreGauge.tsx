@@ -1,5 +1,5 @@
 import { useEffect, useRef, useState } from 'react';
-import { getSignalMeta } from '@/utils/signalLabels';
+import { getSignalMeta, internalCircleLabel } from '@/utils/signalLabels';
 
 interface ScoreGaugeProps {
   score: number;
@@ -27,6 +27,7 @@ export default function ScoreGauge({
 }: ScoreGaugeProps) {
   const target = clampScore(score);
   const meta = getSignalMeta(signal, target);
+  const internal = internalCircleLabel(signal, target);
   const [display, setDisplay] = useState(target);
   const displayRef = useRef(display);
 
@@ -78,53 +79,58 @@ export default function ScoreGauge({
   const color = scoreColor(meta.tone);
 
   return (
-    <div
-      className={`relative inline-flex items-center justify-center ${className}`}
-      style={{ width: size, height: size }}
-      role="img"
-      aria-label={`Score ${target} out of 100, ${meta.short} research signal`}
-    >
-      <svg width={size} height={size} className="-rotate-90" aria-hidden>
-        <circle
-          cx={size / 2}
-          cy={size / 2}
-          r={radius}
-          fill="none"
-          stroke="var(--color-muted)"
-          strokeWidth={stroke}
-        />
-        <circle
-          cx={size / 2}
-          cy={size / 2}
-          r={radius}
-          fill="none"
-          stroke={color}
-          strokeWidth={stroke}
-          strokeLinecap="round"
-          strokeDasharray={circumference}
-          strokeDashoffset={offset}
-          style={{ transition: 'stroke 200ms ease' }}
-        />
-      </svg>
-      <div className="absolute inset-0 flex flex-col items-center justify-center px-2 text-center">
-        <span className="text-3xl font-semibold tabular-nums text-foreground">
-          {display}
-        </span>
-        <span
-          className={`text-[11px] font-semibold tracking-wide ${
-            meta.tone === 'bullish'
-              ? 'text-bullish'
-              : meta.tone === 'bearish'
-                ? 'text-bearish'
-                : 'text-muted-foreground'
-          }`}
-        >
-          {meta.short}
-        </span>
-        <span className="text-[10px] uppercase tracking-wide text-muted-foreground">
-          Research Signal
-        </span>
+    <div className={`inline-flex flex-col items-center ${className}`}>
+      <div
+        className="relative inline-flex items-center justify-center"
+        style={{ width: size, height: size }}
+        role="img"
+        aria-label={`Score ${target} out of 100. Internal signal ${internal}. Public research label ${meta.label}.`}
+      >
+        <svg width={size} height={size} className="-rotate-90" aria-hidden>
+          <circle
+            cx={size / 2}
+            cy={size / 2}
+            r={radius}
+            fill="none"
+            stroke="var(--color-muted)"
+            strokeWidth={stroke}
+          />
+          <circle
+            cx={size / 2}
+            cy={size / 2}
+            r={radius}
+            fill="none"
+            stroke={color}
+            strokeWidth={stroke}
+            strokeLinecap="round"
+            strokeDasharray={circumference}
+            strokeDashoffset={offset}
+            style={{ transition: 'stroke 200ms ease' }}
+          />
+        </svg>
+        <div className="absolute inset-0 flex flex-col items-center justify-center px-2 text-center">
+          <span className="text-3xl font-semibold tabular-nums text-foreground">
+            {display}
+          </span>
+          <span
+            className={`text-[11px] font-bold tracking-wide ${
+              meta.tone === 'bullish'
+                ? 'text-bullish'
+                : meta.tone === 'bearish'
+                  ? 'text-bearish'
+                  : 'text-muted-foreground'
+            }`}
+          >
+            {internal}
+          </span>
+          <span className="text-[10px] tracking-wide text-muted-foreground">
+            Internal Signal
+          </span>
+        </div>
       </div>
+      <p className="mt-2 max-w-[11rem] text-center text-[10px] leading-snug text-muted-foreground">
+        Internal interpretation only — not financial advice.
+      </p>
     </div>
   );
 }

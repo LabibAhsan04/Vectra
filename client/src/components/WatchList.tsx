@@ -159,7 +159,7 @@ export default function WatchList({ analysis = null }: WatchListProps) {
                       <span
                         className={`mt-0.5 inline-block rounded px-1.5 py-0.5 text-[10px] font-medium ${toneClass(meta.tone)}`}
                       >
-                        {meta.short} · {activeScore}
+                        {meta.label} · {activeScore}
                       </span>
                     ) : (
                       <span className="mt-0.5 block text-[10px] text-muted-foreground">

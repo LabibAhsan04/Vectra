@@ -54,7 +54,7 @@ def test_label_change_alert(monkeypatch):
         flags={"aboveMa20": True},
     )
     assert any(a["alertType"] == "label_change" for a in created)
-    assert "Neutral" in created[0]["message"] or "Bullish" in created[0]["message"]
+    assert "Neutral Signal" in created[0]["message"] or "Bullish Signal" in created[0]["message"]
 
 
 def test_score_jump_alert(monkeypatch):

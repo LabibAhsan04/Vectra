@@ -26,15 +26,14 @@ from services.signal_engine import build_factor_scores_from_market, market_snaps
 def _sources_used(*, used_openrouter: bool, fundamentals_available: bool) -> list[str]:
     sources = [
         "Finnhub price data",
-        "Company/news feeds",
-        "Internal signal engine",
+        "company/news feeds",
+        "internal signal engine",
+        "OpenRouter explanation layer",
     ]
+    if not used_openrouter:
+        sources[-1] = "OpenRouter explanation layer (template fallback)"
     if fundamentals_available:
-        sources.append("Limited company profile metrics (when available)")
-    if used_openrouter:
-        sources.append("OpenRouter explanation layer")
-    else:
-        sources.append("Deterministic template explanation (OpenRouter fallback)")
+        sources.insert(2, "limited company profile metrics")
     return sources
 
 

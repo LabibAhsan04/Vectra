@@ -63,17 +63,13 @@ def evaluate_alerts(
     old_sentiment = previous.sentiment_score
 
     if old_label != new_label:
-        short_old = signal_display(old_label).get("short", old_label)
-        short_new = signal_display(new_label).get("short", new_label)
+        short_old = signal_display(old_label).get("label", "Neutral Signal")
+        short_new = signal_display(new_label).get("label", "Neutral Signal")
         reason = "factor evidence shifted"
         if new_scores.get("momentum", 50) > old_momentum + 5:
             reason = "momentum improved"
         elif new_scores.get("momentum", 50) < old_momentum - 5:
             reason = "momentum weakened"
-        if flags.get("aboveMa20") and not (
-            previous.price and False
-        ):
-            pass
         if flags.get("aboveMa20"):
             reason += " and price moved above MA20"
         elif flags.get("belowMa50"):

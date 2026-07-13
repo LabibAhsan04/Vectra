@@ -18,13 +18,13 @@ _NEWS_CACHE_MINUTES = 20
 
 _COMPANY_ALIASES: dict[str, list[str]] = {
     "NVDA": ["nvidia", "nvidia corporation"],
-    "MSFT": ["microsoft"],
-    "GOOGL": ["alphabet", "google"],
-    "GOOG": ["alphabet", "google"],
-    "META": ["meta platforms", "facebook", "instagram"],
-    "AMZN": ["amazon", "aws"],
-    "AAPL": ["apple"],
-    "TSLA": ["tesla"],
+    "MSFT": ["microsoft", "microsoft corporation"],
+    "GOOGL": ["google", "alphabet", "alphabet inc."],
+    "GOOG": ["google", "alphabet", "alphabet inc."],
+    "META": ["meta", "meta platforms"],
+    "AMZN": ["amazon", "amazon.com"],
+    "AAPL": ["apple", "apple inc."],
+    "TSLA": ["tesla", "tesla inc."],
     "AMD": ["advanced micro devices"],
     "AVGO": ["broadcom"],
     "CRM": ["salesforce"],
@@ -140,8 +140,8 @@ def classify_news_relevance(
         return "market", "market", 45
     if sector_hit:
         return "sector", "market", 50
-    # Company feed default — moderate confidence without explicit alias hit.
-    return "company", "company", 70
+    # No direct company/alias hit → Market & Sector, not Company News.
+    return "market", "market", 35
 
 
 def get_company_news(

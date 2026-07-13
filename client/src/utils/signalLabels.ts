@@ -1,75 +1,45 @@
-/** Display helpers for research signals (not trade commands). */
+/** Display helpers: public research labels vs circle-only BUY/HOLD/SELL. */
 import type { ResearchSignal } from '@/types/stock.types';
 
 export interface SignalMeta {
   code: ResearchSignal;
+  /** Public badge / paragraph label, e.g. "Bullish Signal" */
   label: string;
+  /** Short public tone word, e.g. "Bullish" */
   short: string;
+  /** Circle-only internal shorthand: BUY | HOLD | SELL */
+  internal: 'BUY' | 'HOLD' | 'SELL';
   tone: 'bullish' | 'neutral' | 'bearish';
 }
 
+function entry(
+  code: ResearchSignal,
+  tone: SignalMeta['tone'],
+  internal: SignalMeta['internal'],
+): SignalMeta {
+  const label =
+    tone === 'bullish'
+      ? 'Bullish Signal'
+      : tone === 'bearish'
+        ? 'Bearish Signal'
+        : 'Neutral Signal';
+  const short =
+    tone === 'bullish' ? 'Bullish' : tone === 'bearish' ? 'Bearish' : 'Neutral';
+  return { code, label, short, internal, tone };
+}
+
 const BY_CODE: Record<string, SignalMeta> = {
-  strong_bullish: {
-    code: 'strong_bullish',
-    label: 'Strong Bullish',
-    short: 'Strong Bullish',
-    tone: 'bullish',
-  },
-  bullish: {
-    code: 'bullish',
-    label: 'Bullish Signal',
-    short: 'Bullish',
-    tone: 'bullish',
-  },
-  neutral: {
-    code: 'neutral',
-    label: 'Neutral Signal',
-    short: 'Neutral',
-    tone: 'neutral',
-  },
-  bearish: {
-    code: 'bearish',
-    label: 'Bearish Signal',
-    short: 'Bearish',
-    tone: 'bearish',
-  },
-  strong_bearish: {
-    code: 'strong_bearish',
-    label: 'Strong Bearish',
-    short: 'Strong Bearish',
-    tone: 'bearish',
-  },
-  // Legacy codes from earlier API versions
-  strong_buy: {
-    code: 'strong_bullish',
-    label: 'Strong Bullish',
-    short: 'Strong Bullish',
-    tone: 'bullish',
-  },
-  buy: {
-    code: 'bullish',
-    label: 'Bullish Signal',
-    short: 'Bullish',
-    tone: 'bullish',
-  },
-  hold: {
-    code: 'neutral',
-    label: 'Neutral Signal',
-    short: 'Neutral',
-    tone: 'neutral',
-  },
-  sell: {
-    code: 'bearish',
-    label: 'Bearish Signal',
-    short: 'Bearish',
-    tone: 'bearish',
-  },
-  strong_sell: {
-    code: 'strong_bearish',
-    label: 'Strong Bearish',
-    short: 'Strong Bearish',
-    tone: 'bearish',
-  },
+  strong_bullish: entry('strong_bullish', 'bullish', 'BUY'),
+  bullish: entry('bullish', 'bullish', 'BUY'),
+  neutral: entry('neutral', 'neutral', 'HOLD'),
+  bearish: entry('bearish', 'bearish', 'SELL'),
+  strong_bearish: entry('strong_bearish', 'bearish', 'SELL'),
+  // Legacy API codes
+  strong_buy: entry('strong_bullish', 'bullish', 'BUY'),
+  buy: entry('bullish', 'bullish', 'BUY'),
+  hold: entry('neutral', 'neutral', 'HOLD'),
+  sell: entry('bearish', 'bearish', 'SELL'),
+  strong_sell: entry('strong_bearish', 'bearish', 'SELL'),
 };
 
 export function signalFromScore(score: number): ResearchSignal {
@@ -93,6 +63,14 @@ export function getSignalMeta(
   return BY_CODE.neutral;
 }
 
+/** Circle-only. Do not use outside ScoreGauge. */
+export function internalCircleLabel(
+  signal?: string | null,
+  score?: number,
+): 'BUY' | 'HOLD' | 'SELL' {
+  return getSignalMeta(signal, score).internal;
+}
+
 export function toneClass(tone: SignalMeta['tone']): string {
   if (tone === 'bullish') return 'bg-bullish/15 text-bullish';
   if (tone === 'bearish') return 'bg-bearish/15 text-bearish';
@@ -108,15 +86,8 @@ export const FACTOR_HELP: Record<string, string> = {
   growth: 'Evidence of expansion from available headline catalysts.',
 };
 
-export const SCORE_WEIGHTS: Record<string, number> = {
-  momentum: 0.25,
-  technical: 0.25,
-  sentiment: 0.2,
-  fundamentals: 0.15,
-  growth: 0.15,
-};
-
 export function factorDisplayName(key: string): string {
   if (key === 'fundamentals') return 'Fundamentals/Data Quality';
+  if (key === 'growth') return 'Growth/Catalysts';
   return key.charAt(0).toUpperCase() + key.slice(1);
 }

@@ -97,11 +97,11 @@ def run_backtest(
         )
 
     bucket_order = [
-        "80–100 Strong Bullish",
+        "80–100 Bullish (strong)",
         "65–79 Bullish",
         "45–64 Neutral",
         "30–44 Bearish",
-        "0–29 Strong Bearish",
+        "0–29 Bearish (strong)",
     ]
     bucket_rows = []
     for name in bucket_order:

@@ -114,6 +114,7 @@ function PriceChartBody({ ticker }: { ticker: string }) {
   const [error, setError] = useState<string | null>(null);
   const [showMa20Toggle, setShowMa20Toggle] = useState(true);
   const [showMa50Toggle, setShowMa50Toggle] = useState(true);
+  const [lastUpdated, setLastUpdated] = useState<string | null>(null);
   const requestIdRef = useRef(0);
 
   useEffect(() => {
@@ -137,6 +138,14 @@ function PriceChartBody({ ticker }: { ticker: string }) {
         setPoints(data.points ?? []);
         setLoadedRange(range);
         setError(null);
+        setLastUpdated(
+          new Date().toLocaleString(undefined, {
+            month: 'short',
+            day: 'numeric',
+            hour: 'numeric',
+            minute: '2-digit',
+          }),
+        );
       } catch (err) {
         if (cancelled || requestId !== requestIdRef.current) return;
         setError(
@@ -189,6 +198,11 @@ function PriceChartBody({ ticker }: { ticker: string }) {
           <p className="text-sm text-muted-foreground">
             {RANGE_LABELS[loadedRange] ?? loadedRange}
           </p>
+          {lastUpdated ? (
+            <p className="mt-0.5 text-xs text-muted-foreground">
+              Last updated: {lastUpdated}
+            </p>
+          ) : null}
         </div>
         <div className="flex flex-col items-end gap-2">
           <div className="flex flex-wrap gap-1" role="group" aria-label="Chart range">
