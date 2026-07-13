@@ -78,7 +78,7 @@ export default function Dashboard() {
 
       <TickerBar />
 
-      <main className="mx-auto mt-6 flex max-w-5xl flex-col gap-6">
+      <main className="mx-auto mt-6 flex max-w-7xl flex-col gap-6">
         {homeActive ? (
           <HomeOverview />
         ) : activeTicker ? (
@@ -89,18 +89,27 @@ export default function Dashboard() {
               error={error}
               lastUpdated={lastUpdated}
             />
-            <PriceChart key={activeTicker} ticker={activeTicker} />
-            <AIAnalysisPanel
-              key={`ai-${activeTicker}`}
-              ticker={activeTicker}
-              onAnalysis={handleAnalysis}
-            />
-            <NewsPanel
-              key={`news-${activeTicker}`}
-              ticker={activeTicker}
-              companyName={data?.companyName}
-              sentimentByHeadline={sentimentByHeadline}
-            />
+
+            <div className="grid gap-6 lg:grid-cols-[minmax(0,1.2fr)_minmax(0,0.9fr)] lg:items-start">
+              <div className="space-y-6">
+                <PriceChart key={activeTicker} ticker={activeTicker} />
+                <NewsPanel
+                  key={`news-${activeTicker}`}
+                  ticker={activeTicker}
+                  companyName={data?.companyName}
+                  sentimentByHeadline={sentimentByHeadline}
+                  compact
+                />
+              </div>
+              <div className="min-w-0 lg:sticky lg:top-4">
+                <AIAnalysisPanel
+                  key={`ai-${activeTicker}`}
+                  ticker={activeTicker}
+                  onAnalysis={handleAnalysis}
+                />
+              </div>
+            </div>
+
             <AlertsPanel
               key={`alerts-${activeTicker}`}
               ticker={activeTicker}

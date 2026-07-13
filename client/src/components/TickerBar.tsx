@@ -60,78 +60,76 @@ export default function TickerBar() {
 
   return (
     <>
-      <div className="relative border-b border-border pb-4">
-        <div
-          className="ticker-scroll overflow-x-auto"
-          role="group"
-          aria-label="Watchlist tickers"
-        >
-          <div className="flex min-w-max items-stretch gap-2 pr-6">
-            <button
-              type="button"
-              onClick={() => setManageOpen(true)}
-              title="Add ticker"
-              aria-label="Add ticker"
-              className="inline-flex min-h-[58px] w-11 shrink-0 items-center justify-center rounded-lg border border-border bg-card text-xl font-medium text-foreground transition hover:border-muted-foreground/40"
-            >
-              +
-            </button>
-
-            {hydrated && tickers.length === 0 && (
-              <button
-                type="button"
-                onClick={() => setManageOpen(true)}
-                className="rounded-lg border border-dashed border-border px-3 py-2 text-sm text-muted-foreground transition hover:border-muted-foreground/40"
-              >
-                Add tickers to your watchlist
-              </button>
-            )}
-
-            {tickers.map((ticker) => {
-              const quote = quotes[ticker];
-              const positive = (quote?.changePct ?? 0) >= 0;
-              const isActive =
-                selectedView === 'ticker' && selectedTicker === ticker;
-
-              return (
+      <div className="border-b border-border pb-4">
+        <div className="flex items-stretch gap-2">
+          <div
+            className="ticker-scroll relative min-w-0 flex-1 overflow-x-auto"
+            role="group"
+            aria-label="Watchlist tickers"
+          >
+            <div className="flex min-w-max items-stretch gap-2 pr-2">
+              {hydrated && tickers.length === 0 && (
                 <button
-                  key={ticker}
                   type="button"
-                  onClick={() => selectTicker(ticker)}
-                  aria-pressed={isActive}
-                  className={`min-h-[58px] rounded-lg border px-3 py-2 text-left transition ${
-                    isActive
-                      ? 'border-primary bg-primary/10'
-                      : 'border-border bg-card hover:border-muted-foreground/40'
-                  }`}
+                  onClick={() => setManageOpen(true)}
+                  className="rounded-lg border border-dashed border-border px-3 py-2 text-sm text-muted-foreground transition hover:border-muted-foreground/40"
                 >
-                  <div className="text-sm font-semibold text-foreground">
-                    {ticker}
-                  </div>
-                  {loadingQuotes && !quote ? (
-                    <div className="mt-1 h-3 w-12 animate-pulse rounded bg-muted" />
-                  ) : (
-                    <div
-                      className={`text-xs tabular-nums ${
-                        !quote
-                          ? 'text-muted-foreground'
-                          : positive
-                            ? 'text-bullish'
-                            : 'text-bearish'
-                      }`}
-                    >
-                      {quote ? formatChangePct(quote.changePct) : '—'}
-                    </div>
-                  )}
+                  Add tickers to your watchlist
                 </button>
-              );
-            })}
+              )}
+
+              {tickers.map((ticker) => {
+                const quote = quotes[ticker];
+                const positive = (quote?.changePct ?? 0) >= 0;
+                const isActive =
+                  selectedView === 'ticker' && selectedTicker === ticker;
+
+                return (
+                  <button
+                    key={ticker}
+                    type="button"
+                    onClick={() => selectTicker(ticker)}
+                    aria-pressed={isActive}
+                    className={`min-h-[58px] rounded-lg border px-3 py-2 text-left transition ${
+                      isActive
+                        ? 'border-primary bg-primary/10'
+                        : 'border-border bg-card hover:border-muted-foreground/40'
+                    }`}
+                  >
+                    <div className="text-sm font-semibold text-foreground">
+                      {ticker}
+                    </div>
+                    {loadingQuotes && !quote ? (
+                      <div className="mt-1 h-3 w-12 animate-pulse rounded bg-muted" />
+                    ) : (
+                      <div
+                        className={`text-xs tabular-nums ${
+                          !quote
+                            ? 'text-muted-foreground'
+                            : positive
+                              ? 'text-bullish'
+                              : 'text-bearish'
+                        }`}
+                      >
+                        {quote ? formatChangePct(quote.changePct) : '—'}
+                      </div>
+                    )}
+                  </button>
+                );
+              })}
+            </div>
           </div>
+
+          <button
+            type="button"
+            onClick={() => setManageOpen(true)}
+            title="Add ticker"
+            aria-label="Add ticker"
+            className="inline-flex min-h-[58px] w-11 shrink-0 items-center justify-center rounded-lg border border-border bg-card text-xl font-medium text-foreground transition hover:border-muted-foreground/40"
+          >
+            +
+          </button>
         </div>
-        <div
-          aria-hidden
-          className="pointer-events-none absolute inset-y-0 right-0 w-8 bg-gradient-to-l from-background to-transparent"
-        />
       </div>
 
       <ManageWatchlistModal

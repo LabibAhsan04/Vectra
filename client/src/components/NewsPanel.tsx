@@ -8,6 +8,7 @@ interface NewsPanelProps {
   ticker: string;
   companyName?: string;
   sentimentByHeadline?: Record<string, NewsItem['sentiment']>;
+  compact?: boolean;
 }
 
 function formatPublishedAt(value: string): string {
@@ -52,17 +53,19 @@ function NewsList({
   items,
   sentimentByHeadline,
   emptyMessage,
+  compact,
 }: {
   items: NewsItem[];
   sentimentByHeadline: Record<string, NewsItem['sentiment']>;
   emptyMessage: string;
+  compact?: boolean;
 }) {
   if (items.length === 0) {
-    return <p className="text-sm text-muted-foreground">{emptyMessage}</p>;
+    return <p className="text-xs text-muted-foreground">{emptyMessage}</p>;
   }
 
   return (
-    <ul className="space-y-4" aria-live="polite">
+    <ul className={compact ? 'space-y-2' : 'space-y-3'} aria-live="polite">
       {items.map((item, index) => {
         const sentiment =
           sentimentByHeadline[item.headline] ?? item.sentiment;
@@ -73,25 +76,29 @@ function NewsList({
               href={item.url}
               target="_blank"
               rel="noreferrer"
-              className="-mx-1 block rounded-lg p-1 transition hover:bg-muted/40"
+              className="block rounded-md px-1 py-1 transition hover:bg-muted/40"
             >
-              <div className="flex flex-wrap items-center gap-2">
+              <div className="flex flex-wrap items-center gap-1.5">
                 <span
-                  className={`rounded px-2 py-0.5 text-[11px] font-medium tracking-wide ${sentimentClass(sentiment)}`}
+                  className={`rounded px-1.5 py-0.5 text-[10px] font-medium tracking-wide ${sentimentClass(sentiment)}`}
                 >
                   {sentimentLabel(sentiment)}
                 </span>
-                <span className="rounded px-2 py-0.5 text-[11px] font-medium tracking-wide bg-muted text-muted-foreground">
+                <span className="rounded px-1.5 py-0.5 text-[10px] font-medium tracking-wide bg-muted text-muted-foreground">
                   {relevanceLabel(item.relevance)}
                 </span>
-                <span className="text-xs text-muted-foreground">
+                <span className="text-[10px] text-muted-foreground">
                   {item.source}
                 </span>
-                <span className="text-xs text-muted-foreground">
+                <span className="text-[10px] text-muted-foreground">
                   {formatPublishedAt(item.publishedAt)}
                 </span>
               </div>
-              <p className="mt-1 text-sm font-medium leading-snug text-foreground">
+              <p
+                className={`mt-0.5 font-medium leading-snug text-foreground ${
+                  compact ? 'line-clamp-2 text-xs' : 'text-sm'
+                }`}
+              >
                 {item.headline}
               </p>
             </a>
@@ -106,6 +113,7 @@ export default function NewsPanel({
   ticker,
   companyName,
   sentimentByHeadline = {},
+  compact = false,
 }: NewsPanelProps) {
   const [items, setItems] = useState<NewsItem[]>([]);
   const [loading, setLoading] = useState(true);
@@ -126,7 +134,7 @@ export default function NewsPanel({
       try {
         const { data } = await axios.get<NewsItem[]>(
           `${API_BASE_URL}/api/news/${encodeURIComponent(ticker)}`,
-          { params: { limit: 12 } },
+          { params: { limit: compact ? 8 : 12 } },
         );
         if (cancelled || currentRequest !== requestId) return;
         setItems(data);
@@ -155,7 +163,7 @@ export default function NewsPanel({
     return () => {
       cancelled = true;
     };
-  }, [ticker]);
+  }, [ticker, compact]);
 
   const { companyNews, marketNews } = useMemo(() => {
     const company: NewsItem[] = [];
@@ -167,65 +175,83 @@ export default function NewsPanel({
       if (isCompany) company.push(item);
       else market.push(item);
     }
-    return { companyNews: company, marketNews: market };
-  }, [items]);
+    const companyLimit = compact ? 4 : 8;
+    const marketLimit = compact ? 3 : 6;
+    return {
+      companyNews: company.slice(0, companyLimit),
+      marketNews: market.slice(0, marketLimit),
+    };
+  }, [items, compact]);
 
   const newest = items[0]?.publishedAt
     ? formatPublishedAt(items[0].publishedAt)
     : null;
 
   return (
-    <section className="rounded-xl border border-border bg-card p-4 sm:p-6">
-      <div className="mb-4 flex flex-wrap items-baseline justify-between gap-3">
+    <section
+      className={`rounded-xl border border-border bg-card ${
+        compact ? 'p-3 sm:p-4' : 'p-4 sm:p-6'
+      }`}
+    >
+      <div className="mb-3 flex flex-wrap items-baseline justify-between gap-2">
         <div>
-          <h3 className="text-lg font-semibold text-foreground">News</h3>
-          <p className="mt-0.5 text-xs text-muted-foreground">
-            What&apos;s happening with this specific stock
-            {newest ? ` · Updated ${newest}` : ''}
+          <h3
+            className={`font-semibold text-foreground ${
+              compact ? 'text-base' : 'text-lg'
+            }`}
+          >
+            News
+          </h3>
+          <p className="mt-0.5 text-[11px] text-muted-foreground">
+            {companyName ? `${ticker} · ${companyName}` : ticker}
+            {newest ? ` · ${newest}` : ''}
           </p>
         </div>
-        <span className="text-xs text-muted-foreground">
-          {companyName ? `${ticker} · ${companyName}` : ticker}
-        </span>
       </div>
 
       {loading && (
-        <div className="space-y-3" aria-busy="true" aria-label="Loading news">
-          {Array.from({ length: 4 }).map((_, index) => (
-            <div key={index} className="animate-pulse space-y-2">
-              <div className="h-4 w-[80%] rounded bg-muted" />
-              <div className="h-3 w-1/3 rounded bg-muted" />
+        <div className="space-y-2" aria-busy="true" aria-label="Loading news">
+          {Array.from({ length: compact ? 3 : 4 }).map((_, index) => (
+            <div key={index} className="animate-pulse space-y-1.5">
+              <div className="h-3 w-[85%] rounded bg-muted" />
+              <div className="h-2.5 w-1/3 rounded bg-muted" />
             </div>
           ))}
         </div>
       )}
 
       {!loading && error && (
-        <p className="text-sm text-bearish" role="alert">
+        <p className="text-xs text-bearish" role="alert">
           {error}
         </p>
       )}
 
       {!loading && !error && (
-        <div className="space-y-6">
+        <div
+          className={`space-y-4 ${
+            compact ? 'max-h-[22rem] overflow-y-auto pr-1' : ''
+          }`}
+        >
           <div>
-            <h4 className="mb-3 text-sm font-semibold text-foreground">
-              Company News
+            <h4 className="mb-2 text-[11px] font-semibold uppercase tracking-wide text-muted-foreground">
+              Company
             </h4>
             <NewsList
               items={companyNews}
               sentimentByHeadline={sentimentByHeadline}
               emptyMessage="No recent company-specific news found for this ticker."
+              compact={compact}
             />
           </div>
           <div>
-            <h4 className="mb-3 text-sm font-semibold text-foreground">
-              Market & Sector News
+            <h4 className="mb-2 text-[11px] font-semibold uppercase tracking-wide text-muted-foreground">
+              Market &amp; sector
             </h4>
             <NewsList
               items={marketNews}
               sentimentByHeadline={sentimentByHeadline}
               emptyMessage="No recent market or sector headlines in this feed."
+              compact={compact}
             />
           </div>
         </div>

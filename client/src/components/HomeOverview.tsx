@@ -55,39 +55,39 @@ function NewsList({
   showTicker?: boolean;
 }) {
   if (items.length === 0) {
-    return <p className="text-sm text-muted-foreground">{emptyMessage}</p>;
+    return <p className="text-xs text-muted-foreground">{emptyMessage}</p>;
   }
 
   return (
-    <ul className="space-y-4">
+    <ul className="space-y-2">
       {items.map((item, index) => (
         <li key={`${item.url}-${item.publishedAt}-${index}`}>
           <a
             href={item.url}
             target="_blank"
             rel="noreferrer"
-            className="-mx-1 block rounded-lg p-1 transition hover:bg-muted/40"
+            className="block rounded-md px-1 py-1 transition hover:bg-muted/40"
           >
-            <div className="flex flex-wrap items-center gap-2">
+            <div className="flex flex-wrap items-center gap-1.5">
               {showTicker && item.relatedTicker ? (
-                <span className="rounded px-2 py-0.5 text-[11px] font-semibold tracking-wide bg-primary/15 text-primary">
+                <span className="rounded px-1.5 py-0.5 text-[10px] font-semibold tracking-wide bg-primary/15 text-primary">
                   {item.relatedTicker}
                 </span>
               ) : null}
               <span
-                className={`rounded px-2 py-0.5 text-[11px] font-medium tracking-wide ${sentimentClass(item.sentiment)}`}
+                className={`rounded px-1.5 py-0.5 text-[10px] font-medium tracking-wide ${sentimentClass(item.sentiment)}`}
               >
                 {sentimentLabel(item.sentiment)}
               </span>
-              <span className="rounded px-2 py-0.5 text-[11px] font-medium tracking-wide bg-muted text-muted-foreground">
+              <span className="rounded px-1.5 py-0.5 text-[10px] font-medium tracking-wide bg-muted text-muted-foreground">
                 {relevanceLabel(item.relevance)}
               </span>
-              <span className="text-xs text-muted-foreground">{item.source}</span>
-              <span className="text-xs text-muted-foreground">
+              <span className="text-[10px] text-muted-foreground">{item.source}</span>
+              <span className="text-[10px] text-muted-foreground">
                 {formatPublishedAt(item.publishedAt)}
               </span>
             </div>
-            <p className="mt-1 text-sm font-medium leading-snug text-foreground">
+            <p className="mt-0.5 line-clamp-2 text-xs font-medium leading-snug text-foreground">
               {item.headline}
             </p>
           </a>
@@ -261,43 +261,49 @@ export default function HomeOverview() {
         ) : null}
       </section>
 
-      <section className="rounded-xl border border-border bg-card p-4 sm:p-6">
-        <h3 className="mb-3 text-lg font-semibold text-foreground">Market News</h3>
-        {newsLoading && marketNews.length === 0 ? (
-          <div className="h-24 animate-pulse rounded-lg bg-muted" aria-busy="true" />
-        ) : marketError ? (
-          <p className="text-sm text-muted-foreground" role="status">
-            {marketError}
-          </p>
-        ) : (
-          <NewsList
-            items={marketNews}
-            emptyMessage="Market news temporarily unavailable."
-            showTicker
-          />
-        )}
-      </section>
+      <div className="grid gap-4 lg:grid-cols-2 lg:items-start">
+        <section className="rounded-xl border border-border bg-card p-3 sm:p-4">
+          <h3 className="mb-2 text-base font-semibold text-foreground">Market News</h3>
+          <div className="max-h-[22rem] overflow-y-auto pr-1">
+            {newsLoading && marketNews.length === 0 ? (
+              <div className="h-24 animate-pulse rounded-lg bg-muted" aria-busy="true" />
+            ) : marketError ? (
+              <p className="text-xs text-muted-foreground" role="status">
+                {marketError}
+              </p>
+            ) : (
+              <NewsList
+                items={marketNews.slice(0, 10)}
+                emptyMessage="Market news temporarily unavailable."
+                showTicker
+              />
+            )}
+          </div>
+        </section>
 
-      <section className="rounded-xl border border-border bg-card p-4 sm:p-6">
-        <h3 className="mb-3 text-lg font-semibold text-foreground">Watchlist News</h3>
-        {tickers.length === 0 ? (
-          <p className="text-sm text-muted-foreground">
-            Add tickers with + to see combined watchlist headlines here.
-          </p>
-        ) : newsLoading && watchlistNews.length === 0 ? (
-          <div className="h-24 animate-pulse rounded-lg bg-muted" aria-busy="true" />
-        ) : watchError ? (
-          <p className="text-sm text-muted-foreground" role="status">
-            {watchError}
-          </p>
-        ) : (
-          <NewsList
-            items={watchlistNews}
-            emptyMessage="No recent watchlist news found."
-            showTicker
-          />
-        )}
-      </section>
+        <section className="rounded-xl border border-border bg-card p-3 sm:p-4">
+          <h3 className="mb-2 text-base font-semibold text-foreground">Watchlist News</h3>
+          <div className="max-h-[22rem] overflow-y-auto pr-1">
+            {tickers.length === 0 ? (
+              <p className="text-xs text-muted-foreground">
+                Add tickers with + to see combined watchlist headlines here.
+              </p>
+            ) : newsLoading && watchlistNews.length === 0 ? (
+              <div className="h-24 animate-pulse rounded-lg bg-muted" aria-busy="true" />
+            ) : watchError ? (
+              <p className="text-xs text-muted-foreground" role="status">
+                {watchError}
+              </p>
+            ) : (
+              <NewsList
+                items={watchlistNews.slice(0, 10)}
+                emptyMessage="No recent watchlist news found."
+                showTicker
+              />
+            )}
+          </div>
+        </section>
+      </div>
     </div>
   );
 }
