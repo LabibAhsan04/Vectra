@@ -4,16 +4,19 @@ import StockCard from './StockCard';
 import PriceChart from './PriceChart';
 import NewsPanel from './NewsPanel';
 import AIAnalysisPanel from './AIAnalysis';
-import WatchList from './WatchList';
 import AlertsPanel from './AlertsPanel';
 import SignalHistoryChart from './SignalHistoryChart';
 import BacktestingPanel from './BacktestingPanel';
+import HomeOverview from './HomeOverview';
 import { useStockStore } from '@/store/stockStore';
 import { useStockData } from '@/hooks/useStockData';
 import type { AIAnalysis, NewsItem } from '@/types/stock.types';
 
 export default function Dashboard() {
-  const activeTicker = useStockStore((s) => s.activeTicker);
+  const selectedView = useStockStore((s) => s.selectedView);
+  const selectedTicker = useStockStore((s) => s.selectedTicker);
+  const goHome = useStockStore((s) => s.goHome);
+  const activeTicker = selectedTicker ?? '';
   const { data, loading, error } = useStockData(activeTicker);
   const [analysis, setAnalysis] = useState<AIAnalysis | null>(null);
   const [historyRefresh, setHistoryRefresh] = useState(0);
@@ -44,67 +47,79 @@ export default function Dashboard() {
     if (next) setHistoryRefresh((n) => n + 1);
   }
 
+  const homeActive = selectedView === 'home';
+
   return (
     <div className="min-h-screen bg-background px-4 py-6 sm:px-6">
       <header className="mb-6">
-        <div className="flex flex-wrap items-end justify-between gap-3">
+        <div className="flex flex-wrap items-start justify-between gap-3">
           <div>
             <h1 className="text-3xl font-bold tracking-tight text-foreground">
               Vectra
             </h1>
             <p className="mt-1 text-sm text-muted-foreground">
-              Evidence-based stock signal intelligence
+              Stock intelligence dashboard
             </p>
           </div>
-          {lastUpdated ? (
-            <p className="text-xs text-muted-foreground">
-              Last updated: {lastUpdated}
-            </p>
-          ) : null}
+          <button
+            type="button"
+            onClick={goHome}
+            aria-pressed={homeActive}
+            className={`rounded-lg border px-3 py-1.5 text-sm font-medium transition ${
+              homeActive
+                ? 'border-primary bg-primary/10 text-foreground'
+                : 'border-border bg-card text-muted-foreground hover:border-muted-foreground/40 hover:text-foreground'
+            }`}
+          >
+            Home
+          </button>
         </div>
       </header>
 
       <TickerBar />
 
-      <main className="mt-6 grid gap-6 lg:grid-cols-[1.2fr_0.8fr]">
-        <div className="order-2 space-y-6 lg:order-1">
-          <StockCard
-            quote={data}
-            loading={loading}
-            error={error}
-            lastUpdated={lastUpdated}
-          />
-          <PriceChart key={activeTicker} ticker={activeTicker} />
-          <AIAnalysisPanel
-            key={`ai-${activeTicker}`}
-            ticker={activeTicker}
-            onAnalysis={handleAnalysis}
-          />
-          <SignalHistoryChart
-            key={`hist-${activeTicker}`}
-            ticker={activeTicker}
-            refreshKey={historyRefresh}
-          />
-          <BacktestingPanel
-            key={`bt-${activeTicker}`}
-            ticker={activeTicker}
-            refreshKey={historyRefresh}
-          />
-        </div>
-        <div className="order-1 space-y-6 lg:order-2">
-          <WatchList analysis={analysis} />
-          <AlertsPanel
-            key={`alerts-${activeTicker}`}
-            ticker={activeTicker}
-            refreshKey={historyRefresh}
-          />
-          <NewsPanel
-            key={`news-${activeTicker}`}
-            ticker={activeTicker}
-            companyName={data?.companyName}
-            sentimentByHeadline={sentimentByHeadline}
-          />
-        </div>
+      <main className="mx-auto mt-6 flex max-w-5xl flex-col gap-6">
+        {homeActive ? (
+          <HomeOverview />
+        ) : activeTicker ? (
+          <>
+            <StockCard
+              quote={data}
+              loading={loading}
+              error={error}
+              lastUpdated={lastUpdated}
+            />
+            <PriceChart key={activeTicker} ticker={activeTicker} />
+            <AIAnalysisPanel
+              key={`ai-${activeTicker}`}
+              ticker={activeTicker}
+              onAnalysis={handleAnalysis}
+            />
+            <NewsPanel
+              key={`news-${activeTicker}`}
+              ticker={activeTicker}
+              companyName={data?.companyName}
+              sentimentByHeadline={sentimentByHeadline}
+            />
+            <AlertsPanel
+              key={`alerts-${activeTicker}`}
+              ticker={activeTicker}
+              refreshKey={historyRefresh}
+            />
+            <SignalHistoryChart
+              key={`hist-${activeTicker}`}
+              ticker={activeTicker}
+              refreshKey={historyRefresh}
+            />
+            <BacktestingPanel
+              key={`bt-${activeTicker}`}
+              ticker={activeTicker}
+              refreshKey={historyRefresh}
+            />
+          </>
+        ) : (
+          <HomeOverview />
+        )}
       </main>
 
       <footer className="mt-10 border-t border-border pt-4 text-center text-xs text-muted-foreground">

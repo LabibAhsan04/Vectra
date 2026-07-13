@@ -10,7 +10,10 @@ class WatchlistItem(Base):
     __tablename__ = "watchlist"
 
     id = Column(Integer, primary_key=True)
-    ticker = Column(String(10), unique=True, index=True)
+    ticker = Column(String(10), unique=True, index=True, nullable=False)
+    company_name = Column(String(255), nullable=True)
+    exchange = Column(String(64), nullable=True)
+    asset_type = Column(String(64), nullable=True)
     added_at = Column(DateTime, default=datetime.utcnow)
 
 

@@ -9,17 +9,9 @@ export const DEFAULT_TICKERS = [
   'AMD',
   'AVGO',
   'CRM',
-  'PLTR',
-  'SNOW',
-  'ORCL',
-  'IBM',
-  'INTC',
-  'QCOM',
-  'MU',
-  'ARM',
-  'SMCI',
-  'AI',
 ] as const;
+
+export const WATCHLIST_LIMIT = 15;
 
 export const REFRESH_INTERVAL_MS = 60_000;
 

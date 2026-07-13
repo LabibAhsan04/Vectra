@@ -42,6 +42,7 @@ class NewsItem(BaseModel):
     relevance: str = "company"  # company | sector | market | competitor | etf
     relevanceScore: int = Field(default=50, ge=0, le=100)
     section: str = "company"  # company | market
+    relatedTicker: str | None = None
 
 
 class FactorScores(BaseModel):
@@ -114,8 +115,21 @@ class AlertResponse(BaseModel):
 
 class WatchlistAddRequest(BaseModel):
     ticker: str = Field(min_length=1, max_length=10)
+    companyName: str | None = None
+    exchange: str | None = None
+    assetType: str | None = None
 
 
 class WatchlistItemResponse(BaseModel):
     ticker: str
+    companyName: str | None = None
+    exchange: str | None = None
+    assetType: str | None = None
     addedAt: datetime
+
+
+class SymbolSearchResult(BaseModel):
+    symbol: str
+    companyName: str
+    exchange: str = "US"
+    assetType: str = "Stock"

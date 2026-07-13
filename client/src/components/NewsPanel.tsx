@@ -133,7 +133,16 @@ export default function NewsPanel({
         setError(null);
       } catch (err) {
         if (cancelled || currentRequest !== requestId) return;
-        setError(formatApiError(err, `Failed to load news for ${ticker}`));
+        const status = axios.isAxiosError(err) ? err.response?.status : undefined;
+        if (status === 429) {
+          setError(
+            'Data provider rate limit reached. Showing cached results when available.',
+          );
+        } else {
+          setError(
+            formatApiError(err, 'No recent news found for this ticker.'),
+          );
+        }
         setItems([]);
       } finally {
         if (!cancelled && currentRequest === requestId) {
@@ -152,7 +161,10 @@ export default function NewsPanel({
     const company: NewsItem[] = [];
     const market: NewsItem[] = [];
     for (const item of items) {
-      if ((item.section || 'company') === 'company') company.push(item);
+      const isCompany =
+        (item.relevance || '').toLowerCase() === 'company' ||
+        (item.section || '') === 'company';
+      if (isCompany) company.push(item);
       else market.push(item);
     }
     return { companyNews: company, marketNews: market };
@@ -167,11 +179,10 @@ export default function NewsPanel({
       <div className="mb-4 flex flex-wrap items-baseline justify-between gap-3">
         <div>
           <h3 className="text-lg font-semibold text-foreground">News</h3>
-          {newest ? (
-            <p className="mt-0.5 text-xs text-muted-foreground">
-              Last updated: {newest}
-            </p>
-          ) : null}
+          <p className="mt-0.5 text-xs text-muted-foreground">
+            What&apos;s happening with this specific stock
+            {newest ? ` · Updated ${newest}` : ''}
+          </p>
         </div>
         <span className="text-xs text-muted-foreground">
           {companyName ? `${ticker} · ${companyName}` : ticker}

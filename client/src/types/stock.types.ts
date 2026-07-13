@@ -46,6 +46,7 @@ export interface NewsItem {
   relevance?: NewsRelevance | string;
   relevanceScore?: number;
   section?: 'company' | 'market' | string;
+  relatedTicker?: string | null;
 }
 
 export type ResearchSignal =

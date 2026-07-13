@@ -4,7 +4,6 @@ import type { AIAnalysis } from '@/types/stock.types';
 import { API_BASE_URL } from '@/utils/constants';
 import { formatApiError } from '@/utils/apiError';
 import {
-  FACTOR_HELP,
   factorDisplayName,
   getSignalMeta,
   toneClass,
@@ -23,12 +22,13 @@ function factorBarColor(value: number, limited?: boolean): string {
   return 'bg-neutral';
 }
 
-function formatUpdated(iso: string): string {
+function formatAnalysisTime(iso: string): string {
   const date = new Date(iso);
   if (Number.isNaN(date.getTime())) return '';
   return date.toLocaleString(undefined, {
     month: 'short',
     day: 'numeric',
+    year: 'numeric',
     hour: 'numeric',
     minute: '2-digit',
   });
@@ -39,6 +39,7 @@ const SOURCES_LINE =
 
 export default function AIAnalysisPanel({ ticker, onAnalysis }: AIAnalysisProps) {
   const [analysis, setAnalysis] = useState<AIAnalysis | null>(null);
+  const [analysisAsOf, setAnalysisAsOf] = useState<string | null>(null);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const onAnalysisRef = useRef(onAnalysis);
@@ -70,6 +71,8 @@ export default function AIAnalysisPanel({ ticker, onAnalysis }: AIAnalysisProps)
       });
       if (requestId !== requestIdRef.current) return;
       setAnalysis(data);
+      // Prefer API generatedAt; fall back to local receive time so the stamp always shows.
+      setAnalysisAsOf(data.generatedAt || new Date().toISOString());
       onAnalysisRef.current?.(data);
     } catch (err) {
       if (requestId !== requestIdRef.current) return;
@@ -80,6 +83,7 @@ export default function AIAnalysisPanel({ ticker, onAnalysis }: AIAnalysisProps)
           : formatApiError(err, 'Signal temporarily unavailable. Try again in a moment.'),
       );
       if (!hadAnalysis) {
+        setAnalysisAsOf(null);
         onAnalysisRef.current?.(null);
       }
     } finally {
@@ -90,12 +94,14 @@ export default function AIAnalysisPanel({ ticker, onAnalysis }: AIAnalysisProps)
   }
 
   useEffect(() => {
+    setAnalysisAsOf(null);
     void runAnalysis(false);
     // eslint-disable-next-line react-hooks/exhaustive-deps -- mount/ticker only
   }, [ticker]);
 
   const meta = getSignalMeta(analysis?.signal, analysis?.overallScore);
   const publicBadge = meta.label;
+  const asOfLabel = analysisAsOf ? formatAnalysisTime(analysisAsOf) : '';
   const fundamentalsLimited = analysis?.fundamentalsAvailable === false;
   const breakdown = analysis?.scoreBreakdown?.length
     ? analysis.scoreBreakdown.map((row) => ({
@@ -120,13 +126,18 @@ export default function AIAnalysisPanel({ ticker, onAnalysis }: AIAnalysisProps)
 
   return (
     <section className="rounded-xl border border-border bg-card p-4 sm:p-6">
-      <div className="mb-4 flex flex-wrap items-center justify-between gap-3">
+      <div className="mb-4 flex flex-wrap items-start justify-between gap-3">
         <div>
           <h3 className="text-lg font-semibold text-foreground">Signal Analysis</h3>
-          {analysis?.generatedAt ? (
-            <p className="mt-0.5 text-xs text-muted-foreground">
-              Last updated: {formatUpdated(analysis.generatedAt)}
-            </p>
+          {asOfLabel ? (
+            <div className="mt-1 space-y-0.5">
+              <p className="text-sm font-medium text-foreground">
+                Analysis as of: {asOfLabel}
+              </p>
+              <p className="text-xs text-muted-foreground">
+                Based on market and news data available at this time.
+              </p>
+            </div>
           ) : null}
         </div>
         <button
@@ -185,6 +196,11 @@ export default function AIAnalysisPanel({ ticker, onAnalysis }: AIAnalysisProps)
               >
                 {publicBadge}
               </span>
+              {asOfLabel ? (
+                <p className="text-xs text-muted-foreground">
+                  Generated {asOfLabel} from data available then.
+                </p>
+              ) : null}
               <p className="text-sm leading-relaxed text-foreground">
                 {analysis.analysisText}
               </p>
@@ -286,8 +302,8 @@ export default function AIAnalysisPanel({ ticker, onAnalysis }: AIAnalysisProps)
           <p className="text-xs text-muted-foreground">{SOURCES_LINE}</p>
 
           <p className="border-t border-border pt-3 text-xs leading-relaxed text-muted-foreground">
-            Vectra provides evidence-based research signals only. It does not provide
-            financial advice or execute trades.
+            Vectra provides research signals based on market data, technical indicators,
+            and news context. It does not execute trades or provide financial advice.
           </p>
         </div>
       )}

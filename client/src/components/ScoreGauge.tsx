@@ -124,12 +124,12 @@ export default function ScoreGauge({
             {internal}
           </span>
           <span className="text-[10px] tracking-wide text-muted-foreground">
-            Internal Signal
+            Signal
           </span>
         </div>
       </div>
       <p className="mt-2 max-w-[11rem] text-center text-[10px] leading-snug text-muted-foreground">
-        Internal interpretation only — not financial advice.
+        Research signal only — not financial advice.
       </p>
     </div>
   );
