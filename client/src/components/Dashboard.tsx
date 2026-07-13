@@ -1,6 +1,7 @@
 import { useMemo, useState } from 'react';
 import TickerBar from './TickerBar';
 import StockCard from './StockCard';
+import PriceChart from './PriceChart';
 import NewsPanel from './NewsPanel';
 import AIAnalysisPanel from './AIAnalysis';
 import { useStockStore } from '@/store/stockStore';
@@ -36,6 +37,7 @@ export default function Dashboard() {
       <main className="mt-6 grid gap-6 lg:grid-cols-[1.2fr_0.8fr]">
         <div className="space-y-6">
           <StockCard quote={data} loading={loading} error={error} />
+          <PriceChart ticker={activeTicker} />
           <AIAnalysisPanel ticker={activeTicker} onAnalysis={setAnalysis} />
         </div>
         <NewsPanel

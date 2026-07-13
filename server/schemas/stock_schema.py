@@ -17,6 +17,21 @@ class StockQuote(BaseModel):
     timestamp: datetime
 
 
+class PricePoint(BaseModel):
+    date: str
+    open: float
+    high: float
+    low: float
+    close: float
+    volume: int = 0
+
+
+class PriceHistory(BaseModel):
+    ticker: str
+    range: str
+    points: list[PricePoint]
+
+
 class NewsItem(BaseModel):
     headline: str
     source: str

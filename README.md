@@ -56,6 +56,12 @@ Vectra/
 - [x] Weighted composite 0–100 score from factor scores
 - [x] Animated circular `ScoreGauge` in the AI Analysis panel
 
+## Phase 7 — Price charts
+
+- [x] `GET /api/stock/{ticker}/history` (Polygon + Finnhub + Alpha Vantage fallbacks)
+- [x] Recharts `PriceChart` with range toggles (1M–5Y)
+- [x] 15-minute history cache to reduce rate limits
+
 ## Quick start
 
 ### 1. Clone and configure environment

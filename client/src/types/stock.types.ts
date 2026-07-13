@@ -12,6 +12,23 @@ export interface StockQuote {
   timestamp: string;
 }
 
+export type ChartRange = '1M' | '3M' | '6M' | '1Y' | '5Y';
+
+export interface PricePoint {
+  date: string;
+  open: number;
+  high: number;
+  low: number;
+  close: number;
+  volume: number;
+}
+
+export interface PriceHistory {
+  ticker: string;
+  range: ChartRange | string;
+  points: PricePoint[];
+}
+
 export interface NewsItem {
   headline: string;
   source: string;
