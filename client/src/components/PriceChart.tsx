@@ -112,6 +112,8 @@ function PriceChartBody({ ticker }: { ticker: string }) {
   const [points, setPoints] = useState<PricePoint[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
+  const [showMa20Toggle, setShowMa20Toggle] = useState(true);
+  const [showMa50Toggle, setShowMa50Toggle] = useState(true);
   const requestIdRef = useRef(0);
 
   useEffect(() => {
@@ -172,8 +174,10 @@ function PriceChartBody({ ticker }: { ticker: string }) {
   const showChart = points.length > 0;
   const showSkeleton = loading && !showChart;
   const pendingRange = showChart && range !== loadedRange;
-  const showMa20 = chartRows.some((p) => p.ma20 != null);
-  const showMa50 = chartRows.some((p) => p.ma50 != null);
+  const hasMa20 = chartRows.some((p) => p.ma20 != null);
+  const hasMa50 = chartRows.some((p) => p.ma50 != null);
+  const showMa20 = hasMa20 && showMa20Toggle;
+  const showMa50 = hasMa50 && showMa50Toggle;
 
   return (
     <section className="rounded-xl border border-border bg-card p-4 sm:p-6">
@@ -186,30 +190,60 @@ function PriceChartBody({ ticker }: { ticker: string }) {
             {RANGE_LABELS[loadedRange] ?? loadedRange}
           </p>
         </div>
-        <div className="flex flex-wrap gap-1" role="group" aria-label="Chart range">
-          {RANGES.map((option) => {
-            const isLoaded = loadedRange === option && showChart;
-            const isPending = range === option && loading;
-            return (
-              <button
-                key={option}
-                type="button"
-                onClick={() => setRange(option)}
-                aria-pressed={isLoaded}
-                aria-busy={isPending || undefined}
-                disabled={loading}
-                className={`rounded-md px-2.5 py-1 text-xs font-medium transition disabled:opacity-60 ${
-                  isLoaded
-                    ? 'bg-primary/15 text-primary'
-                    : isPending
-                      ? 'bg-muted text-foreground'
-                      : 'text-muted-foreground hover:text-foreground'
-                }`}
-              >
-                {option}
-              </button>
-            );
-          })}
+        <div className="flex flex-col items-end gap-2">
+          <div className="flex flex-wrap gap-1" role="group" aria-label="Chart range">
+            {RANGES.map((option) => {
+              const isLoaded = loadedRange === option && showChart;
+              const isPending = range === option && loading;
+              return (
+                <button
+                  key={option}
+                  type="button"
+                  onClick={() => setRange(option)}
+                  aria-pressed={isLoaded}
+                  aria-busy={isPending || undefined}
+                  disabled={loading}
+                  className={`rounded-md px-2.5 py-1 text-xs font-medium transition disabled:opacity-60 ${
+                    isLoaded
+                      ? 'bg-primary/15 text-primary'
+                      : isPending
+                        ? 'bg-muted text-foreground'
+                        : 'text-muted-foreground hover:text-foreground'
+                  }`}
+                >
+                  {option}
+                </button>
+              );
+            })}
+          </div>
+          <div className="flex flex-wrap gap-1" role="group" aria-label="Moving averages">
+            <button
+              type="button"
+              onClick={() => setShowMa20Toggle((v) => !v)}
+              aria-pressed={showMa20Toggle}
+              disabled={!hasMa20}
+              className={`rounded-md px-2.5 py-1 text-xs font-medium transition disabled:opacity-40 ${
+                showMa20Toggle
+                  ? 'bg-muted text-foreground'
+                  : 'text-muted-foreground hover:text-foreground'
+              }`}
+            >
+              MA20
+            </button>
+            <button
+              type="button"
+              onClick={() => setShowMa50Toggle((v) => !v)}
+              aria-pressed={showMa50Toggle}
+              disabled={!hasMa50}
+              className={`rounded-md px-2.5 py-1 text-xs font-medium transition disabled:opacity-40 ${
+                showMa50Toggle
+                  ? 'bg-muted text-foreground'
+                  : 'text-muted-foreground hover:text-foreground'
+              }`}
+            >
+              MA50
+            </button>
+          </div>
         </div>
       </div>
 

@@ -1,4 +1,4 @@
-"""Finnhub company news with relevance classification + short cache."""
+"""Classify headlines and attach relevance scores (0–100)."""
 
 from __future__ import annotations
 
@@ -16,7 +16,6 @@ _client: finnhub.Client | None = None
 _news_cache: dict[str, tuple[datetime, list[NewsItem]]] = {}
 _NEWS_CACHE_MINUTES = 20
 
-# Known aliases help company-vs-sector classification for common tech names.
 _COMPANY_ALIASES: dict[str, list[str]] = {
     "NVDA": ["nvidia", "nvidia corporation"],
     "MSFT": ["microsoft"],
@@ -93,7 +92,6 @@ def _aliases_for(ticker: str, company_name: str = "") -> list[str]:
     name = (company_name or "").strip().lower()
     if name and name not in aliases:
         aliases.append(name)
-        # first token often enough ("Nvidia Corp" → nvidia)
         first = name.split()[0]
         if len(first) > 2:
             aliases.append(first)
@@ -105,8 +103,8 @@ def classify_news_relevance(
     ticker: str,
     *,
     company_name: str = "",
-) -> tuple[str, str]:
-    """Return (relevance, section) for a headline."""
+) -> tuple[str, str, int]:
+    """Return (relevance, section, relevance_score 0–100)."""
     text = headline.lower()
     symbol = ticker.upper()
     aliases = _aliases_for(symbol, company_name)
@@ -128,19 +126,22 @@ def classify_news_relevance(
     broad_market = any(re.search(p, text) for p in _MARKET_PATTERNS)
     sector_hit = any(re.search(p, text) for p in _SECTOR_PATTERNS)
 
-    # Company mention wins even if sector terms appear.
+    # Mostly about market/competitor without direct company mention → market section.
     if company_hit:
-        return "company", "company"
+        score = 95
+        if broad_market or sector_hit:
+            score = 85
+        return "company", "company", score
     if competitor_hit:
-        return "competitor", "market"
+        return "competitor", "market", 55
     if etf_hit:
-        return "etf", "market"
+        return "etf", "market", 40
     if broad_market:
-        return "market", "market"
+        return "market", "market", 45
     if sector_hit:
-        return "sector", "market"
-    # Finnhub company_news is usually about the symbol; keep as company by default.
-    return "company", "company"
+        return "sector", "market", 50
+    # Company feed default — moderate confidence without explicit alias hit.
+    return "company", "company", 70
 
 
 def get_company_news(
@@ -174,20 +175,25 @@ def get_company_news(
     except Exception as exc:
         detail = str(exc)
         if "429" in detail or "rate" in detail.lower():
-            # Prefer stale cache on rate limit if present.
             if cached is not None:
                 return cached[1]
             raise HTTPException(
                 status_code=429,
-                detail="News provider rate limit hit. Try again shortly — cached data will appear when available.",
+                detail=(
+                    "News provider rate limit hit. Try again shortly — "
+                    "cached data will appear when available."
+                ),
             ) from exc
         raise HTTPException(
             status_code=502,
-            detail=f"Failed to fetch news from Finnhub: {exc}",
+            detail="Data temporarily unavailable. Try refreshing in a few minutes.",
         ) from exc
 
     if not isinstance(raw_items, list):
-        raise HTTPException(status_code=502, detail="Unexpected Finnhub response")
+        raise HTTPException(
+            status_code=502,
+            detail="Data temporarily unavailable. Try refreshing in a few minutes.",
+        )
 
     dated_items: list[tuple[float, dict[str, Any]]] = []
     for item in raw_items:
@@ -207,7 +213,7 @@ def get_company_news(
         if not headline or not url:
             continue
 
-        relevance, section = classify_news_relevance(
+        relevance, section, relevance_score = classify_news_relevance(
             headline,
             symbol,
             company_name=company_name,
@@ -221,14 +227,13 @@ def get_company_news(
                 sentiment="neutral",
                 sentimentScore=0.0,
                 relevance=relevance,
+                relevanceScore=relevance_score,
                 section=section,
             )
         )
         if len(news) >= max(limit * 2, 16):
-            # Fetch a bit extra so UI can still split company vs market.
             break
 
-    # Prefer company section first when returning a flat list for older callers.
     company_first = [n for n in news if n.section == "company"] + [
         n for n in news if n.section != "company"
     ]

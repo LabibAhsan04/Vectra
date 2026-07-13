@@ -5,6 +5,9 @@ import PriceChart from './PriceChart';
 import NewsPanel from './NewsPanel';
 import AIAnalysisPanel from './AIAnalysis';
 import WatchList from './WatchList';
+import AlertsPanel from './AlertsPanel';
+import SignalHistoryChart from './SignalHistoryChart';
+import BacktestingPanel from './BacktestingPanel';
 import { useStockStore } from '@/store/stockStore';
 import { useStockData } from '@/hooks/useStockData';
 import type { AIAnalysis, NewsItem } from '@/types/stock.types';
@@ -13,6 +16,7 @@ export default function Dashboard() {
   const activeTicker = useStockStore((s) => s.activeTicker);
   const { data, loading, error } = useStockData(activeTicker);
   const [analysis, setAnalysis] = useState<AIAnalysis | null>(null);
+  const [historyRefresh, setHistoryRefresh] = useState(0);
 
   const sentimentByHeadline = useMemo(() => {
     const map: Record<string, NewsItem['sentiment']> = {};
@@ -34,6 +38,11 @@ export default function Dashboard() {
       minute: '2-digit',
     });
   }, [data?.timestamp, analysis?.generatedAt]);
+
+  function handleAnalysis(next: AIAnalysis | null) {
+    setAnalysis(next);
+    if (next) setHistoryRefresh((n) => n + 1);
+  }
 
   return (
     <div className="min-h-screen bg-background px-4 py-6 sm:px-6">
@@ -59,16 +68,36 @@ export default function Dashboard() {
 
       <main className="mt-6 grid gap-6 lg:grid-cols-[1.2fr_0.8fr]">
         <div className="order-2 space-y-6 lg:order-1">
-          <StockCard quote={data} loading={loading} error={error} />
+          <StockCard
+            quote={data}
+            loading={loading}
+            error={error}
+            lastUpdated={lastUpdated}
+          />
           <PriceChart key={activeTicker} ticker={activeTicker} />
           <AIAnalysisPanel
             key={`ai-${activeTicker}`}
             ticker={activeTicker}
-            onAnalysis={setAnalysis}
+            onAnalysis={handleAnalysis}
+          />
+          <SignalHistoryChart
+            key={`hist-${activeTicker}`}
+            ticker={activeTicker}
+            refreshKey={historyRefresh}
+          />
+          <BacktestingPanel
+            key={`bt-${activeTicker}`}
+            ticker={activeTicker}
+            refreshKey={historyRefresh}
           />
         </div>
         <div className="order-1 space-y-6 lg:order-2">
-          <WatchList />
+          <WatchList analysis={analysis} />
+          <AlertsPanel
+            key={`alerts-${activeTicker}`}
+            ticker={activeTicker}
+            refreshKey={historyRefresh}
+          />
           <NewsPanel
             key={`news-${activeTicker}`}
             ticker={activeTicker}
@@ -80,7 +109,10 @@ export default function Dashboard() {
 
       <footer className="mt-10 border-t border-border pt-4 text-center text-xs text-muted-foreground">
         <p>Vectra — Evidence-based stock signal intelligence.</p>
-        <p className="mt-1">Built for research and educational use.</p>
+        <p className="mt-1">
+          For educational and research purposes only. Not financial advice. Does not
+          execute trades.
+        </p>
       </footer>
     </div>
   );

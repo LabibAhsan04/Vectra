@@ -77,6 +77,9 @@ function NewsList({
                 </span>
                 <span className="rounded px-2 py-0.5 text-[11px] font-medium tracking-wide bg-muted text-muted-foreground">
                   {relevanceLabel(item.relevance)}
+                  {typeof item.relevanceScore === 'number'
+                    ? ` · ${item.relevanceScore}`
+                    : ''}
                 </span>
                 <span className="text-xs text-muted-foreground">
                   {item.source}
@@ -152,10 +155,21 @@ export default function NewsPanel({
     return { companyNews: company, marketNews: market };
   }, [items]);
 
+  const newest = items[0]?.publishedAt
+    ? formatPublishedAt(items[0].publishedAt)
+    : null;
+
   return (
     <section className="rounded-xl border border-border bg-card p-4 sm:p-6">
-      <div className="mb-4 flex items-baseline justify-between gap-3">
-        <h3 className="text-lg font-semibold text-foreground">News</h3>
+      <div className="mb-4 flex flex-wrap items-baseline justify-between gap-3">
+        <div>
+          <h3 className="text-lg font-semibold text-foreground">News</h3>
+          {newest ? (
+            <p className="mt-0.5 text-xs text-muted-foreground">
+              Last updated: {newest}
+            </p>
+          ) : null}
+        </div>
         <span className="text-xs text-muted-foreground">
           {companyName ? `${ticker} · ${companyName}` : ticker}
         </span>

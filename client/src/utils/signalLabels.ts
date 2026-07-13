@@ -8,45 +8,76 @@ export interface SignalMeta {
   tone: 'bullish' | 'neutral' | 'bearish';
 }
 
-const BY_CODE: Record<ResearchSignal, SignalMeta> = {
+const BY_CODE: Record<string, SignalMeta> = {
+  strong_bullish: {
+    code: 'strong_bullish',
+    label: 'Strong Bullish',
+    short: 'Strong Bullish',
+    tone: 'bullish',
+  },
+  bullish: {
+    code: 'bullish',
+    label: 'Bullish Signal',
+    short: 'Bullish',
+    tone: 'bullish',
+  },
+  neutral: {
+    code: 'neutral',
+    label: 'Neutral Signal',
+    short: 'Neutral',
+    tone: 'neutral',
+  },
+  bearish: {
+    code: 'bearish',
+    label: 'Bearish Signal',
+    short: 'Bearish',
+    tone: 'bearish',
+  },
+  strong_bearish: {
+    code: 'strong_bearish',
+    label: 'Strong Bearish',
+    short: 'Strong Bearish',
+    tone: 'bearish',
+  },
+  // Legacy codes from earlier API versions
   strong_buy: {
-    code: 'strong_buy',
-    label: 'Strong Bullish (STRONG BUY)',
+    code: 'strong_bullish',
+    label: 'Strong Bullish',
     short: 'Strong Bullish',
     tone: 'bullish',
   },
   buy: {
-    code: 'buy',
-    label: 'Bullish Signal (BUY)',
+    code: 'bullish',
+    label: 'Bullish Signal',
     short: 'Bullish',
     tone: 'bullish',
   },
   hold: {
-    code: 'hold',
+    code: 'neutral',
     label: 'Neutral Signal',
     short: 'Neutral',
     tone: 'neutral',
   },
   sell: {
-    code: 'sell',
-    label: 'Bearish Signal (SELL)',
+    code: 'bearish',
+    label: 'Bearish Signal',
     short: 'Bearish',
     tone: 'bearish',
   },
   strong_sell: {
-    code: 'strong_sell',
-    label: 'Strong Bearish (STRONG SELL)',
+    code: 'strong_bearish',
+    label: 'Strong Bearish',
     short: 'Strong Bearish',
     tone: 'bearish',
   },
 };
 
 export function signalFromScore(score: number): ResearchSignal {
-  if (score >= 80) return 'strong_buy';
-  if (score >= 65) return 'buy';
-  if (score <= 20) return 'strong_sell';
-  if (score <= 40) return 'sell';
-  return 'hold';
+  if (score >= 80) return 'strong_bullish';
+  if (score >= 65) return 'bullish';
+  if (score <= 20) return 'strong_bearish';
+  if (score <= 40) return 'bearish';
+  return 'neutral';
 }
 
 export function getSignalMeta(
@@ -54,12 +85,12 @@ export function getSignalMeta(
   score?: number,
 ): SignalMeta {
   if (signal && signal in BY_CODE) {
-    return BY_CODE[signal as ResearchSignal];
+    return BY_CODE[signal];
   }
   if (typeof score === 'number') {
     return BY_CODE[signalFromScore(score)];
   }
-  return BY_CODE.hold;
+  return BY_CODE.neutral;
 }
 
 export function toneClass(tone: SignalMeta['tone']): string {
@@ -71,10 +102,18 @@ export function toneClass(tone: SignalMeta['tone']): string {
 export const FACTOR_HELP: Record<string, string> = {
   momentum: 'Price movement and volume strength.',
   fundamentals:
-    'Revenue, earnings, margins, or availability of reliable company data.',
+    'Availability and quality of reliable company fundamental data.',
   sentiment: 'Tone of recent company and sector news.',
   technical: 'Moving averages, RSI, and trend structure.',
-  growth: 'Evidence of expansion from available data and catalysts.',
+  growth: 'Evidence of expansion from available headline catalysts.',
+};
+
+export const SCORE_WEIGHTS: Record<string, number> = {
+  momentum: 0.25,
+  technical: 0.25,
+  sentiment: 0.2,
+  fundamentals: 0.15,
+  growth: 0.15,
 };
 
 export function factorDisplayName(key: string): string {

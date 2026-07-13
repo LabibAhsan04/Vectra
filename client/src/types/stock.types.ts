@@ -44,15 +44,30 @@ export interface NewsItem {
   sentiment: 'bullish' | 'bearish' | 'neutral';
   sentimentScore: number;
   relevance?: NewsRelevance | string;
+  relevanceScore?: number;
   section?: 'company' | 'market' | string;
 }
 
 export type ResearchSignal =
+  | 'strong_bullish'
+  | 'bullish'
+  | 'neutral'
+  | 'bearish'
+  | 'strong_bearish'
   | 'strong_buy'
   | 'buy'
   | 'hold'
   | 'sell'
   | 'strong_sell';
+
+export interface ScoreBreakdownRow {
+  key: string;
+  label: string;
+  score: number;
+  weight: number;
+  weightedPoints: number;
+  notes: string[];
+}
 
 export interface AIAnalysis {
   ticker: string;
@@ -70,6 +85,8 @@ export interface AIAnalysis {
     technical: number;
     growth: number;
   };
+  scoreBreakdown?: ScoreBreakdownRow[];
+  scoreFormula?: string;
   newsItems: Array<{
     headline: string;
     sentiment: 'bullish' | 'bearish' | 'neutral';
@@ -81,6 +98,42 @@ export interface AIAnalysis {
   dataLimitations?: string[];
   fundamentalsAvailable?: boolean;
   sourcesUsed?: string[];
-  explanationSource?: 'openrouter' | 'template' | string;
+  explanationSource?: 'openrouter' | 'template' | 'cache' | string;
   generatedAt: string;
+}
+
+export interface SignalHistoryPoint {
+  timestamp: string;
+  finalScore: number;
+  finalLabel: string;
+  price: number;
+}
+
+export interface SignalAlert {
+  id: number;
+  ticker: string;
+  timestamp: string;
+  alertType: string;
+  message: string;
+  oldValue?: string | null;
+  newValue?: string | null;
+}
+
+export interface BacktestResult {
+  signalsTested: number;
+  byLabel: Array<{
+    signalLabel: string;
+    count: number;
+    avg1dReturn: number | null;
+    avg5dReturn: number | null;
+    avg20dReturn: number | null;
+    winRate5d: number | null;
+  }>;
+  byBucket: Array<{
+    bucket: string;
+    count: number;
+    avg5dReturn: number | null;
+  }>;
+  disclaimer: string;
+  message?: string;
 }

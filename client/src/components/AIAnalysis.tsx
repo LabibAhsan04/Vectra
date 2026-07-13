@@ -81,15 +81,31 @@ export default function AIAnalysisPanel({ ticker, onAnalysis }: AIAnalysisProps)
     }
   }
 
+  // Auto-run once per ticker when the panel mounts.
+  useEffect(() => {
+    void runAnalysis(false);
+    // eslint-disable-next-line react-hooks/exhaustive-deps -- mount/ticker only
+  }, [ticker]);
+
   const meta = getSignalMeta(analysis?.signal, analysis?.overallScore);
   const fundamentalsLimited = analysis?.fundamentalsAvailable === false;
+  const breakdown = analysis?.scoreBreakdown?.length
+    ? analysis.scoreBreakdown
+    : Object.entries(analysis?.scores ?? {}).map(([key, score]) => ({
+        key,
+        label: factorDisplayName(key),
+        score,
+        weight: 0,
+        weightedPoints: 0,
+        notes: [] as string[],
+      }));
 
   return (
     <section className="rounded-xl border border-border bg-card p-4 sm:p-6">
       <div className="mb-4 flex flex-wrap items-center justify-between gap-3">
         <div>
           <h3 className="text-lg font-semibold text-foreground">
-            Evidence Analysis
+            Signal Analysis
           </h3>
           {analysis?.generatedAt ? (
             <p className="mt-0.5 text-xs text-muted-foreground">
@@ -99,12 +115,12 @@ export default function AIAnalysisPanel({ ticker, onAnalysis }: AIAnalysisProps)
         </div>
         <button
           type="button"
-          onClick={() => void runAnalysis(Boolean(analysis))}
+          onClick={() => void runAnalysis(true)}
           disabled={loading || !ticker}
           aria-busy={loading}
           className="rounded-lg border border-border px-3 py-1.5 text-sm font-medium text-foreground transition hover:border-muted-foreground/50 disabled:cursor-not-allowed disabled:opacity-50"
         >
-          {loading ? 'Refreshing…' : analysis ? 'Refresh Signal' : 'Run Signal Analysis'}
+          {loading ? 'Refreshing…' : 'Refresh Signal'}
         </button>
       </div>
 
@@ -155,64 +171,71 @@ export default function AIAnalysisPanel({ ticker, onAnalysis }: AIAnalysisProps)
                 {analysis.signalLabel ?? meta.label}
               </span>
               <p className="text-sm leading-relaxed text-foreground">
-                <span className="font-medium text-muted-foreground">
-                  Current Evidence:{' '}
-                </span>
                 {analysis.analysisText}
               </p>
               <p className="text-xs leading-relaxed text-muted-foreground">
                 {analysis.scoreInterpretation ??
-                  `${analysis.overallScore}/100 indicates the strength of current evidence across momentum, sentiment, technicals, growth, and data quality.`}
+                  `${analysis.overallScore}/100 indicates the strength of current evidence across momentum, technicals, sentiment, growth, and data quality.`}
               </p>
             </div>
           </div>
 
           <div>
             <h4 className="mb-2 text-xs font-semibold uppercase tracking-wide text-muted-foreground">
-              Signal Drivers
+              Why this score?
             </h4>
-            <div className="space-y-2">
-              {Object.entries(analysis.scores ?? {}).map(([key, value]) => {
-                const limited = key === 'fundamentals' && fundamentalsLimited;
+            {analysis.scoreFormula ? (
+              <p className="mb-3 rounded-lg bg-muted/40 px-3 py-2 font-mono text-[11px] leading-relaxed text-muted-foreground">
+                {analysis.scoreFormula}
+              </p>
+            ) : null}
+            <div className="space-y-3">
+              {breakdown.map((row) => {
+                const limited = row.key === 'fundamentals' && fundamentalsLimited;
                 return (
-                  <div key={key}>
-                    <div className="mb-1 flex justify-between gap-2 text-xs text-muted-foreground">
-                      <span
-                        className="capitalize"
-                        title={FACTOR_HELP[key] ?? ''}
-                      >
-                        {factorDisplayName(key)}
+                  <div key={row.key} className="rounded-lg border border-border/70 p-3">
+                    <div className="mb-1 flex justify-between gap-2 text-sm">
+                      <span className="font-medium text-foreground">
+                        {row.label}
                         {limited ? ' (limited)' : ''}
                       </span>
-                      <span className="tabular-nums">{value}</span>
+                      <span className="tabular-nums text-muted-foreground">
+                        {row.score}/100
+                        {row.weight > 0
+                          ? ` · ${(row.weight * 100).toFixed(0)}% → ${row.weightedPoints.toFixed(1)}`
+                          : ''}
+                      </span>
                     </div>
-                    <div className="h-1.5 overflow-hidden rounded-full bg-muted">
+                    <div className="mb-2 h-1.5 overflow-hidden rounded-full bg-muted">
                       <div
-                        className={`h-full rounded-full ${factorBarColor(value, limited)}`}
+                        className={`h-full rounded-full ${factorBarColor(row.score, limited)}`}
                         style={{
-                          width: `${Math.max(0, Math.min(100, value))}%`,
+                          width: `${Math.max(0, Math.min(100, row.score))}%`,
                           opacity: limited ? 0.55 : 1,
                         }}
                       />
                     </div>
-                    <p className="mt-0.5 text-[10px] text-muted-foreground/80">
-                      {FACTOR_HELP[key]}
-                    </p>
+                    {row.notes?.length ? (
+                      <ul className="list-disc space-y-0.5 pl-4 text-xs text-muted-foreground">
+                        {row.notes.map((note, index) => (
+                          <li key={`${row.key}-note-${index}`}>{note}</li>
+                        ))}
+                      </ul>
+                    ) : (
+                      <p className="text-[10px] text-muted-foreground/80">
+                        {FACTOR_HELP[row.key]}
+                      </p>
+                    )}
                   </div>
                 );
               })}
             </div>
-            {fundamentalsLimited ? (
-              <p className="mt-2 text-xs text-muted-foreground">
-                Fundamental data unavailable in current free API tier.
-              </p>
-            ) : null}
           </div>
 
           {(analysis.whyThisSignal?.length ?? 0) > 0 && (
             <div>
               <h4 className="mb-1 text-xs font-semibold uppercase tracking-wide text-muted-foreground">
-                Why this signal?
+                Signal summary
               </h4>
               <ul className="list-disc space-y-1 pl-4 text-sm text-foreground">
                 {analysis.whyThisSignal!.map((item, index) => (
@@ -274,6 +297,11 @@ export default function AIAnalysisPanel({ ticker, onAnalysis }: AIAnalysisProps)
               </ul>
             </div>
           )}
+
+          <p className="text-xs text-muted-foreground">
+            Fundamental data is limited in this version, so the signal relies mainly on
+            price momentum, technical indicators, and recent news.
+          </p>
 
           {(analysis.sourcesUsed?.length ?? 0) > 0 && (
             <p className="text-xs text-muted-foreground">

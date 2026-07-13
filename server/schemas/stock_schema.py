@@ -40,6 +40,7 @@ class NewsItem(BaseModel):
     sentiment: str = "neutral"
     sentimentScore: float = 0.0
     relevance: str = "company"  # company | sector | market | competitor | etf
+    relevanceScore: int = Field(default=50, ge=0, le=100)
     section: str = "company"  # company | market
 
 
@@ -49,6 +50,15 @@ class FactorScores(BaseModel):
     sentiment: int = Field(ge=0, le=100)
     technical: int = Field(ge=0, le=100)
     growth: int = Field(ge=0, le=100)
+
+
+class ScoreBreakdownRow(BaseModel):
+    key: str
+    label: str
+    score: int
+    weight: float
+    weightedPoints: float
+    notes: list[str] = []
 
 
 class NewsSentiment(BaseModel):
@@ -71,6 +81,8 @@ class AIAnalysisResponse(BaseModel):
     analysisText: str
     scoreInterpretation: str = ""
     scores: FactorScores
+    scoreBreakdown: list[ScoreBreakdownRow] = []
+    scoreFormula: str = ""
     newsItems: list[NewsSentiment] = []
     keyRisks: list[str] = []
     keyCatalysts: list[str] = []
@@ -81,6 +93,23 @@ class AIAnalysisResponse(BaseModel):
     sourcesUsed: list[str] = []
     explanationSource: str = "template"
     generatedAt: datetime
+
+
+class SignalHistoryPoint(BaseModel):
+    timestamp: datetime
+    finalScore: int
+    finalLabel: str
+    price: float
+
+
+class AlertResponse(BaseModel):
+    id: int
+    ticker: str
+    timestamp: datetime
+    alertType: str
+    message: str
+    oldValue: str | None = None
+    newValue: str | None = None
 
 
 class WatchlistAddRequest(BaseModel):

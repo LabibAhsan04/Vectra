@@ -24,4 +24,7 @@ async def read_news(
     except HTTPException:
         raise
     except Exception as exc:
-        raise HTTPException(status_code=502, detail=str(exc)) from exc
+        raise HTTPException(
+            status_code=502,
+            detail="Data temporarily unavailable. Try refreshing in a few minutes.",
+        ) from exc

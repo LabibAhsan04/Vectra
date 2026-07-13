@@ -5,9 +5,15 @@ interface StockCardProps {
   quote: StockQuote | null;
   loading?: boolean;
   error?: string | null;
+  lastUpdated?: string | null;
 }
 
-export default function StockCard({ quote, loading, error }: StockCardProps) {
+export default function StockCard({
+  quote,
+  loading,
+  error,
+  lastUpdated,
+}: StockCardProps) {
   if (loading) {
     return (
       <div
@@ -118,6 +124,11 @@ export default function StockCard({ quote, loading, error }: StockCardProps) {
           </dd>
         </div>
       </dl>
+      {lastUpdated ? (
+        <p className="mt-4 text-xs text-muted-foreground">
+          Last updated: {lastUpdated}
+        </p>
+      ) : null}
     </article>
   );
 }

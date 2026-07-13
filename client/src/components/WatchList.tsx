@@ -1,8 +1,14 @@
-import { useEffect, useState, type FormEvent } from 'react';
+import { useEffect, useMemo, useState, type FormEvent } from 'react';
 import { useStockStore } from '@/store/stockStore';
 import { useWatchlistStore } from '@/store/watchlistStore';
+import type { AIAnalysis } from '@/types/stock.types';
+import { getSignalMeta, toneClass } from '@/utils/signalLabels';
 
-export default function WatchList() {
+interface WatchListProps {
+  analysis?: AIAnalysis | null;
+}
+
+export default function WatchList({ analysis = null }: WatchListProps) {
   const activeTicker = useStockStore((s) => s.activeTicker);
   const setActiveTicker = useStockStore((s) => s.setActiveTicker);
   const tickers = useWatchlistStore((s) => s.tickers);
@@ -21,6 +27,19 @@ export default function WatchList() {
       void fetchWatchlist();
     }
   }, [hydrated, fetchWatchlist]);
+
+  const sorted = useMemo(() => {
+    const scoreMap: Record<string, number> = {};
+    if (analysis?.ticker) {
+      scoreMap[analysis.ticker.toUpperCase()] = analysis.overallScore;
+    }
+    return [...tickers].sort((a, b) => {
+      const sa = scoreMap[a] ?? -1;
+      const sb = scoreMap[b] ?? -1;
+      if (sa === sb) return a.localeCompare(b);
+      return sb - sa;
+    });
+  }, [tickers, analysis]);
 
   async function onSubmit(event: FormEvent) {
     event.preventDefault();
@@ -106,10 +125,18 @@ export default function WatchList() {
         </p>
       )}
 
-      {tickers.length > 0 && (
+      {sorted.length > 0 && (
         <ul className="space-y-2" aria-label="Watchlist symbols">
-          {tickers.map((ticker) => {
+          {sorted.map((ticker) => {
             const isActive = ticker === activeTicker;
+            const activeScore =
+              analysis?.ticker?.toUpperCase() === ticker
+                ? analysis.overallScore
+                : null;
+            const meta =
+              activeScore != null
+                ? getSignalMeta(analysis?.signal, activeScore)
+                : null;
             return (
               <li key={ticker}>
                 <div
@@ -123,9 +150,22 @@ export default function WatchList() {
                     type="button"
                     onClick={() => setActiveTicker(ticker)}
                     aria-pressed={isActive}
-                    className="min-w-0 flex-1 text-left text-sm font-semibold tracking-wide text-foreground"
+                    className="min-w-0 flex-1 text-left"
                   >
-                    {ticker}
+                    <span className="block text-sm font-semibold tracking-wide text-foreground">
+                      {ticker}
+                    </span>
+                    {meta && activeScore != null ? (
+                      <span
+                        className={`mt-0.5 inline-block rounded px-1.5 py-0.5 text-[10px] font-medium ${toneClass(meta.tone)}`}
+                      >
+                        {meta.short} · {activeScore}
+                      </span>
+                    ) : (
+                      <span className="mt-0.5 block text-[10px] text-muted-foreground">
+                        Select to view signal
+                      </span>
+                    )}
                   </button>
                   <button
                     type="button"
