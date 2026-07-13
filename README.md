@@ -51,6 +51,11 @@ Vectra/
 - [x] OpenRouter analysis endpoint (`POST /api/analyze`)
 - [x] AIAnalysis panel with signal, score, and factor bars
 
+## Phase 6 — Score gauge
+
+- [x] Weighted composite 0–100 score from factor scores
+- [x] Animated circular `ScoreGauge` in the AI Analysis panel
+
 ## Quick start
 
 ### 1. Clone and configure environment

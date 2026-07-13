@@ -11,6 +11,11 @@ import httpx
 from fastapi import HTTPException
 
 from config import settings
+from services.scoring import (
+    compute_composite_score,
+    normalize_factor_scores,
+    signal_from_score,
+)
 
 SYSTEM_PROMPT = """
 You are a quantitative financial analyst AI. You will be given data about a
@@ -73,21 +78,6 @@ def _extract_json(text: str) -> dict[str, Any]:
     return json.loads(cleaned)
 
 
-def _clamp_score(value: Any, default: int = 50) -> int:
-    try:
-        score = int(round(float(value)))
-    except (TypeError, ValueError):
-        return default
-    return max(0, min(100, score))
-
-
-def _normalize_signal(value: Any) -> str:
-    signal = str(value or "hold").strip().lower()
-    if signal in {"buy", "hold", "sell"}:
-        return signal
-    return "hold"
-
-
 def _normalize_sentiment(value: Any) -> str:
     sentiment = str(value or "neutral").strip().lower()
     if sentiment in {"bullish", "bearish", "neutral"}:
@@ -103,7 +93,18 @@ def _get_cached(ticker: str) -> dict[str, Any] | None:
     if datetime.now(tz=timezone.utc) >= expires_at:
         _analysis_cache.pop(ticker, None)
         return None
-    return payload
+
+    # Re-apply current scoring rules so older cache entries stay consistent
+    scores = normalize_factor_scores(payload.get("scores"))
+    overall = compute_composite_score(scores)
+    refreshed = {
+        **payload,
+        "scores": scores,
+        "overallScore": overall,
+        "signal": signal_from_score(overall),
+    }
+    _analysis_cache[ticker] = (expires_at, refreshed)
+    return refreshed
 
 
 def _set_cache(ticker: str, payload: dict[str, Any]) -> None:
@@ -193,20 +194,16 @@ async def get_ai_analysis(
 
     scores_raw = raw.get("scores") if isinstance(raw.get("scores"), dict) else {}
     news_raw = raw.get("newsItems") if isinstance(raw.get("newsItems"), list) else []
+    factor_scores = normalize_factor_scores(scores_raw)
+    overall_score = compute_composite_score(factor_scores)
 
     payload: dict[str, Any] = {
         "ticker": symbol,
-        "overallScore": _clamp_score(raw.get("overallScore")),
-        "signal": _normalize_signal(raw.get("signal")),
+        "overallScore": overall_score,
+        "signal": signal_from_score(overall_score),
         "analysisText": str(raw.get("analysisText") or "").strip()
         or "No analysis text returned.",
-        "scores": {
-            "momentum": _clamp_score(scores_raw.get("momentum")),
-            "fundamentals": _clamp_score(scores_raw.get("fundamentals")),
-            "sentiment": _clamp_score(scores_raw.get("sentiment")),
-            "technical": _clamp_score(scores_raw.get("technical")),
-            "growth": _clamp_score(scores_raw.get("growth")),
-        },
+        "scores": factor_scores,
         "newsItems": [
             {
                 "headline": str(item.get("headline") or "").strip(),

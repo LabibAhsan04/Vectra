@@ -2,6 +2,7 @@ import { useEffect, useRef, useState } from 'react';
 import axios from 'axios';
 import type { AIAnalysis } from '@/types/stock.types';
 import { API_BASE_URL } from '@/utils/constants';
+import ScoreGauge from './ScoreGauge';
 
 interface AIAnalysisProps {
   ticker: string;
@@ -33,6 +34,12 @@ function errorMessage(err: unknown, ticker: string): string {
     }
   }
   return `Failed to analyze ${ticker}`;
+}
+
+function factorBarColor(value: number): string {
+  if (value >= 65) return 'bg-bullish';
+  if (value <= 40) return 'bg-bearish';
+  return 'bg-neutral';
 }
 
 export default function AIAnalysisPanel({ ticker, onAnalysis }: AIAnalysisProps) {
@@ -92,7 +99,7 @@ export default function AIAnalysisPanel({ ticker, onAnalysis }: AIAnalysisProps)
         </button>
       </div>
 
-      {loading && (
+      {loading && !analysis && (
         <div className="animate-pulse space-y-3">
           <div className="h-6 w-28 rounded bg-muted" />
           <div className="h-4 w-full rounded bg-muted" />
@@ -109,28 +116,24 @@ export default function AIAnalysisPanel({ ticker, onAnalysis }: AIAnalysisProps)
         </p>
       )}
 
-      {!loading && analysis && (
-        <div className="space-y-4">
-          <div className="flex flex-wrap items-center gap-3">
-            <span
-              className={`rounded-md px-2.5 py-1 text-sm font-semibold uppercase tracking-wide ${signalClass(analysis.signal)}`}
-            >
-              {analysis.signal}
-            </span>
-            <span className="text-2xl font-semibold tabular-nums text-foreground">
-              {analysis.overallScore}
-              <span className="ml-1 text-sm font-normal text-muted-foreground">
-                / 100
+      {analysis && (
+        <div className={`space-y-4 ${loading ? 'opacity-60' : ''}`}>
+          <div className="flex flex-wrap items-center gap-6">
+            <ScoreGauge score={analysis.overallScore} signal={analysis.signal} />
+            <div className="min-w-0 flex-1 space-y-2">
+              <span
+                className={`inline-block rounded-md px-2.5 py-1 text-sm font-semibold uppercase tracking-wide ${signalClass(analysis.signal)}`}
+              >
+                {analysis.signal}
               </span>
-            </span>
+              <p className="text-sm leading-relaxed text-foreground">
+                {analysis.analysisText}
+              </p>
+            </div>
           </div>
 
-          <p className="text-sm leading-relaxed text-foreground">
-            {analysis.analysisText}
-          </p>
-
           <div className="space-y-2">
-            {Object.entries(analysis.scores).map(([key, value]) => (
+            {Object.entries(analysis.scores ?? {}).map(([key, value]) => (
               <div key={key}>
                 <div className="mb-1 flex justify-between text-xs text-muted-foreground">
                   <span className="capitalize">{key}</span>
@@ -138,36 +141,37 @@ export default function AIAnalysisPanel({ ticker, onAnalysis }: AIAnalysisProps)
                 </div>
                 <div className="h-1.5 overflow-hidden rounded-full bg-muted">
                   <div
-                    className="h-full rounded-full bg-primary"
-                    style={{ width: `${value}%` }}
+                    className={`h-full rounded-full ${factorBarColor(value)}`}
+                    style={{ width: `${Math.max(0, Math.min(100, value))}%` }}
                   />
                 </div>
               </div>
             ))}
           </div>
 
-          {(analysis.keyCatalysts.length > 0 || analysis.keyRisks.length > 0) && (
+          {((analysis.keyCatalysts?.length ?? 0) > 0 ||
+            (analysis.keyRisks?.length ?? 0) > 0) && (
             <div className="grid gap-4 sm:grid-cols-2">
-              {analysis.keyCatalysts.length > 0 && (
+              {(analysis.keyCatalysts?.length ?? 0) > 0 && (
                 <div>
                   <h4 className="mb-1 text-xs font-semibold uppercase tracking-wide text-muted-foreground">
                     Catalysts
                   </h4>
                   <ul className="list-disc space-y-1 pl-4 text-sm text-foreground">
-                    {analysis.keyCatalysts.map((item) => (
-                      <li key={item}>{item}</li>
+                    {analysis.keyCatalysts.map((item, index) => (
+                      <li key={`catalyst-${index}`}>{item}</li>
                     ))}
                   </ul>
                 </div>
               )}
-              {analysis.keyRisks.length > 0 && (
+              {(analysis.keyRisks?.length ?? 0) > 0 && (
                 <div>
                   <h4 className="mb-1 text-xs font-semibold uppercase tracking-wide text-muted-foreground">
                     Risks
                   </h4>
                   <ul className="list-disc space-y-1 pl-4 text-sm text-foreground">
-                    {analysis.keyRisks.map((item) => (
-                      <li key={item}>{item}</li>
+                    {analysis.keyRisks.map((item, index) => (
+                      <li key={`risk-${index}`}>{item}</li>
                     ))}
                   </ul>
                 </div>
