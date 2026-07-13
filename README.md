@@ -62,6 +62,11 @@ Vectra/
 - [x] Recharts `PriceChart` with range toggles (1M–5Y)
 - [x] 15-minute history cache to reduce rate limits
 
+## Phase 8 — Watchlist
+
+- [x] SQLite-backed watchlist API (`GET/POST/DELETE /api/watchlist`)
+- [x] WatchList panel with add/remove and ticker selection
+
 ## Quick start
 
 ### 1. Clone and configure environment

@@ -69,3 +69,12 @@ class AIAnalysisResponse(BaseModel):
     keyRisks: list[str] = []
     keyCatalysts: list[str] = []
     generatedAt: datetime
+
+
+class WatchlistAddRequest(BaseModel):
+    ticker: str = Field(min_length=1, max_length=10)
+
+
+class WatchlistItemResponse(BaseModel):
+    ticker: str
+    addedAt: datetime

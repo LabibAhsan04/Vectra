@@ -28,6 +28,13 @@ class WatchlistItem(Base):
     added_at = Column(DateTime, default=datetime.utcnow)
 
 
+class AppSetting(Base):
+    __tablename__ = "app_settings"
+
+    key = Column(String(64), primary_key=True)
+    value = Column(String(255), nullable=False)
+
+
 class PriceCache(Base):
     __tablename__ = "price_cache"
 

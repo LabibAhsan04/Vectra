@@ -4,6 +4,7 @@ import StockCard from './StockCard';
 import PriceChart from './PriceChart';
 import NewsPanel from './NewsPanel';
 import AIAnalysisPanel from './AIAnalysis';
+import WatchList from './WatchList';
 import { useStockStore } from '@/store/stockStore';
 import { useStockData } from '@/hooks/useStockData';
 import type { AIAnalysis, NewsItem } from '@/types/stock.types';
@@ -40,10 +41,13 @@ export default function Dashboard() {
           <PriceChart ticker={activeTicker} />
           <AIAnalysisPanel ticker={activeTicker} onAnalysis={setAnalysis} />
         </div>
-        <NewsPanel
-          ticker={activeTicker}
-          sentimentByHeadline={sentimentByHeadline}
-        />
+        <div className="space-y-6">
+          <WatchList />
+          <NewsPanel
+            ticker={activeTicker}
+            sentimentByHeadline={sentimentByHeadline}
+          />
+        </div>
       </main>
     </div>
   );
