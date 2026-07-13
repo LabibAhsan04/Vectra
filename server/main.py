@@ -12,16 +12,26 @@ load_dotenv(Path(__file__).resolve().parent.parent / ".env")
 
 app = FastAPI(title="Vectra — AI Stock Dashboard", version="0.1.0")
 
+_allowed_origins = [
+    origin.strip().rstrip("/")
+    for origin in os.getenv(
+        "ALLOWED_ORIGINS",
+        "http://localhost:3000,http://127.0.0.1:3000",
+    ).split(",")
+    if origin.strip()
+]
+_origin_regex_raw = os.getenv("ALLOWED_ORIGIN_REGEX")
+if _origin_regex_raw is None:
+    # Default: allow Vercel production + preview URLs
+    _origin_regex: str | None = r"https://.*\.vercel\.app"
+else:
+    # Empty string disables the regex allowlist
+    _origin_regex = _origin_regex_raw.strip() or None
+
 app.add_middleware(
     CORSMiddleware,
-    allow_origins=[
-        origin.strip()
-        for origin in os.getenv(
-            "ALLOWED_ORIGINS",
-            "http://localhost:3000,http://127.0.0.1:3000",
-        ).split(",")
-        if origin.strip()
-    ],
+    allow_origins=_allowed_origins,
+    allow_origin_regex=_origin_regex,
     allow_methods=["*"],
     allow_headers=["*"],
 )

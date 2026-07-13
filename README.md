@@ -17,8 +17,8 @@ Stock intelligence dashboard — live prices, news aggregation, sentiment scorin
 
 ```
 Vectra/
-├── client/          # React frontend (port 3000)
-├── server/          # FastAPI backend (port 8000)
+├── client/          # React frontend (port 3000) → Vercel
+├── server/          # FastAPI backend (port 8000) → Railway
 ├── .env.example     # API keys template (copy to .env)
 └── docker-compose.yml
 ```
@@ -74,6 +74,61 @@ Vectra/
 - [x] Focus rings, `aria-pressed` / `aria-live` / labels
 - [x] Mobile padding and watchlist-first column order
 - [x] Ticker bar scroll cue + per-chip loading states
+
+## Phase 10 — Deploy
+
+- [x] Railway-ready FastAPI (`PORT`, healthcheck, `railway.toml`)
+- [x] Vercel-ready Vite app (`vercel.json`)
+- [x] Production CORS (`ALLOWED_ORIGINS` + Vercel preview regex)
+
+### Backend — Railway
+
+1. Push this repo to GitHub (already on `main`).
+2. In [Railway](https://railway.app): **New Project → Deploy from GitHub** → select `Vectra`.
+3. Set **Root Directory** to `server`.
+4. Add variables (from your local `.env`):
+
+| Variable | Notes |
+|----------|--------|
+| `POLYGON_API_KEY` | required |
+| `FINNHUB_API_KEY` | required |
+| `ALPHA_VANTAGE_KEY` | recommended |
+| `NEWS_API_KEY` | optional (news falls back to Finnhub) |
+| `OPENROUTER_API_KEY` | required for AI analysis |
+| `OPENROUTER_MODEL` | e.g. `openai/gpt-4o-mini` |
+| `ALLOWED_ORIGINS` | include your Vercel URL (see below) |
+| `DATABASE_URL` | default `sqlite:///./stocks.db` (ephemeral) |
+
+5. Deploy, then open the public URL + `/health` — expect `{"status":"ok"}`.
+6. Copy the public API base URL (no trailing slash), e.g. `https://vectra-api.up.railway.app`.
+
+Optional: attach a Railway volume at `/data` and set `DATABASE_URL=sqlite:////data/stocks.db` so the watchlist survives redeploys.
+
+### Frontend — Vercel
+
+1. In [Vercel](https://vercel.com): **Add New Project** → import `Vectra`.
+2. Set **Root Directory** to `client`.
+3. Framework: Vite (auto). Build: `npm run build`. Output: `dist`.
+4. Environment variable:
+
+| Variable | Value |
+|----------|--------|
+| `VITE_API_URL` | Railway API URL from above |
+
+5. Deploy. Copy the Vercel URL (e.g. `https://vectra.vercel.app`).
+6. Back on Railway, update `ALLOWED_ORIGINS` to include that URL (comma-separated with local origins if you want), then redeploy the API.
+
+```bash
+ALLOWED_ORIGINS=http://localhost:3000,http://127.0.0.1:3000,https://vectra.vercel.app
+```
+
+Preview deployments on `*.vercel.app` are allowed by default via `ALLOWED_ORIGIN_REGEX`.
+
+### Verify production
+
+1. Open the Vercel site — quotes, news, chart, watchlist, and AI analysis should work.
+2. Browser Network tab: API calls go to your Railway host, not `localhost`.
+3. If CORS errors appear, double-check `ALLOWED_ORIGINS` matches the exact Vercel origin (https, no trailing slash).
 
 ## Quick start
 
@@ -138,7 +193,7 @@ All five services should report ✓ before moving to Phase 2.
 | 7 | Historical price charts |
 | 8 | Watchlist persistence |
 | **9** | Polish (loading states, a11y, mobile) |
-| 10 | Deploy to Vercel + Railway |
+| **10** | Deploy to Vercel + Railway |
 
 ## Docker (optional)
 
