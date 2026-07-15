@@ -81,27 +81,20 @@ export default function Dashboard() {
     <div className="min-h-screen bg-background px-4 py-6 sm:px-6">
       <header className="mb-5 border-b border-border pb-4">
         <div className="flex flex-wrap items-center justify-between gap-4">
-          <div className="flex items-center gap-3">
-            <div
-              className="relative h-11 w-11 shrink-0 overflow-hidden rounded-lg border border-border bg-card"
-              aria-hidden
-            >
-              <img
-                src="/vectra-logo.png"
-                alt=""
-                className="absolute left-1/2 top-0 h-[4.75rem] w-auto max-w-none -translate-x-1/2"
-                width={400}
-                height={310}
-              />
-            </div>
-            <div>
-              <h1 className="text-2xl font-bold tracking-tight text-foreground">
-                Vectra
-              </h1>
-              <p className="text-sm text-muted-foreground">
+          <div className="flex min-w-0 items-center gap-4 sm:gap-5">
+            <img
+              src="/vectra-logo.png"
+              alt="Vectra — Real-time signals"
+              className="h-20 w-auto max-w-[min(100%,280px)] shrink-0 object-contain sm:h-24"
+              width={400}
+              height={310}
+            />
+            <div className="min-w-0 border-l border-border pl-4 sm:pl-5">
+              <h1 className="sr-only">Vectra</h1>
+              <p className="text-sm font-medium leading-snug text-foreground sm:text-base">
                 Evidence-based stock signal intelligence
               </p>
-              <p className="text-xs text-muted-foreground">
+              <p className="mt-1 text-xs leading-relaxed text-muted-foreground sm:text-sm">
                 Real-time BUY · HOLD · SELL research signals
               </p>
             </div>
