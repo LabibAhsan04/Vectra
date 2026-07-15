@@ -79,50 +79,52 @@ export default function Dashboard() {
 
   return (
     <div className="min-h-screen bg-background px-4 py-6 sm:px-6">
-      <header className="mb-6">
-        <div className="flex flex-wrap items-start justify-between gap-3">
-          <div className="flex items-center gap-4">
+      <header className="relative mb-6">
+        <div className="absolute right-0 top-0 flex flex-col items-end gap-1.5">
+          <div className="flex flex-wrap items-center gap-2">
+            <ThemeToggle />
+            <button
+              type="button"
+              onClick={goHome}
+              aria-pressed={homeActive}
+              className={`rounded-lg border px-3 py-1.5 text-sm font-medium transition ${
+                homeActive
+                  ? 'border-primary bg-primary/10 text-foreground'
+                  : 'border-border bg-card text-muted-foreground hover:border-muted-foreground/40 hover:text-foreground'
+              }`}
+            >
+              Home
+            </button>
+          </div>
+          {signalsUpdatedLabel ? (
+            <p className="text-xs text-muted-foreground">
+              Signals updated {signalsUpdatedLabel}
+            </p>
+          ) : null}
+        </div>
+
+        <div className="flex flex-col items-center px-12 pt-1 text-center sm:px-20">
+          <div
+            className="relative mb-3 h-14 w-14 overflow-hidden rounded-xl border border-border bg-card-secondary/60 shadow-sm sm:h-16 sm:w-16"
+            aria-hidden
+          >
             <img
               src="/vectra-logo.png"
-              alt="Vectra"
-              className="h-12 w-auto shrink-0 sm:h-14"
+              alt=""
+              className="absolute left-1/2 top-0 h-[6.25rem] w-auto max-w-none -translate-x-1/2 sm:h-[7rem]"
               width={400}
               height={310}
             />
-            <div className="min-w-0">
-              <h1 className="text-xl font-bold tracking-tight text-foreground sm:text-2xl">
-                Vectra
-              </h1>
-              <p className="mt-0.5 text-sm text-muted-foreground sm:text-base">
-                Evidence-based stock signal intelligence
-              </p>
-              <p className="mt-0.5 text-xs text-muted-foreground sm:text-sm">
-                Real-time BUY · HOLD · SELL research signals
-              </p>
-            </div>
           </div>
-          <div className="flex flex-col items-end gap-1.5">
-            <div className="flex flex-wrap items-center gap-2">
-              <ThemeToggle />
-              <button
-                type="button"
-                onClick={goHome}
-                aria-pressed={homeActive}
-                className={`rounded-lg border px-3 py-1.5 text-sm font-medium transition ${
-                  homeActive
-                    ? 'border-primary bg-primary/10 text-foreground'
-                    : 'border-border bg-card text-muted-foreground hover:border-muted-foreground/40 hover:text-foreground'
-                }`}
-              >
-                Home
-              </button>
-            </div>
-            {signalsUpdatedLabel ? (
-              <p className="text-xs text-muted-foreground">
-                Signals updated {signalsUpdatedLabel}
-              </p>
-            ) : null}
-          </div>
+          <h1 className="text-2xl font-bold tracking-tight text-foreground sm:text-3xl">
+            Vectra
+          </h1>
+          <p className="mt-1 max-w-md text-sm text-muted-foreground sm:text-base">
+            Evidence-based stock signal intelligence
+          </p>
+          <p className="mt-0.5 text-xs text-muted-foreground sm:text-sm">
+            Real-time BUY · HOLD · SELL research signals
+          </p>
         </div>
       </header>
 
