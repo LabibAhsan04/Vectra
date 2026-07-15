@@ -37,6 +37,7 @@ def get_upcoming_earnings(ticker: str, days_ahead: int = 45) -> list[dict]:
                 if (item.get("symbol") or "").upper() != symbol:
                     continue
                 day = str(item.get("date") or "")
+                hour = str(item.get("hour") or "").strip()
                 events.append(
                     {
                         "ticker": symbol,
@@ -44,8 +45,8 @@ def get_upcoming_earnings(ticker: str, days_ahead: int = 45) -> list[dict]:
                         "eventType": "earnings",
                         "epsEstimate": item.get("epsEstimate"),
                         "revenueEstimate": item.get("revenueEstimate"),
-                        "hour": item.get("hour") or "",
-                        "label": f"Earnings report ({item.get('hour') or 'TBD'})",
+                        "hour": hour,
+                        "label": "Earnings report",
                     }
                 )
     except Exception:

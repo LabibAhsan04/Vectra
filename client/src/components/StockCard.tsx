@@ -10,7 +10,7 @@ interface StockCardProps {
 
 function Stat({ label, value, tone }: { label: string; value: string; tone?: 'up' | 'down' }) {
   return (
-    <div className="min-w-0">
+    <div className="min-w-[4.5rem]">
       <dt className="text-[10px] uppercase tracking-wide text-muted-foreground">{label}</dt>
       <dd
         className={`truncate text-sm font-medium tabular-nums ${
@@ -74,14 +74,14 @@ export default function StockCard({
 
   return (
     <article className="rounded-xl border border-border bg-card px-4 py-3">
-      <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
+      <div className="flex flex-col gap-4 sm:flex-row sm:items-end sm:gap-10 lg:gap-14">
         {/* Left: identity + price */}
-        <div className="min-w-0 shrink-0">
+        <div className="min-w-0 shrink-0 sm:max-w-[40%]">
           <p className="truncate text-xs text-muted-foreground">{quote.companyName}</p>
-          <div className="mt-0.5 flex flex-wrap items-baseline gap-x-2 gap-y-1">
-            <h2 className="text-xl font-semibold tracking-wide text-foreground">
-              {quote.ticker}
-            </h2>
+          <h2 className="mt-0.5 text-xl font-semibold tracking-wide text-foreground">
+            {quote.ticker}
+          </h2>
+          <div className="mt-1 flex flex-wrap items-baseline gap-2">
             <span className="text-2xl font-semibold tabular-nums text-foreground">
               {formatPrice(quote.price)}
             </span>
@@ -95,8 +95,8 @@ export default function StockCard({
           </div>
         </div>
 
-        {/* Right: compact stats row */}
-        <dl className="grid grid-cols-3 gap-x-4 gap-y-2 sm:flex sm:flex-wrap sm:items-end sm:justify-end sm:gap-x-5 sm:gap-y-1">
+        {/* Right: stats spread across remaining width */}
+        <dl className="grid flex-1 grid-cols-2 gap-x-6 gap-y-3 sm:grid-cols-5 sm:gap-x-6 lg:gap-x-10">
           <Stat
             label="Change"
             value={`${positive ? '+' : ''}${formatPrice(quote.change)}`}

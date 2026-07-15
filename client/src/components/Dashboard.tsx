@@ -134,6 +134,7 @@ export default function Dashboard() {
             <div className="grid gap-6 lg:grid-cols-[minmax(0,1.15fr)_minmax(0,0.85fr)] lg:items-start">
               <div className="space-y-6">
                 <PriceChart key={activeTicker} ticker={activeTicker} />
+                <EarningsCard key={`earnings-${activeTicker}`} ticker={activeTicker} />
                 <NewsPanel
                   key={`news-${activeTicker}`}
                   ticker={activeTicker}
@@ -148,7 +149,6 @@ export default function Dashboard() {
                   onAnalysis={handleAnalysis}
                   onLoadingChange={setAnalysisLoading}
                 />
-                <EarningsCard ticker={activeTicker} />
                 <PeerComparison ticker={activeTicker} />
               </div>
             </div>

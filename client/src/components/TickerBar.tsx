@@ -5,7 +5,7 @@ import { useStockStore } from '@/store/stockStore';
 import { useWatchlistStore } from '@/store/watchlistStore';
 import { API_BASE_URL } from '@/utils/constants';
 import { formatChangePct } from '@/utils/formatters';
-import { internalCircleLabel } from '@/utils/signalLabels';
+import { getSignalMeta, toneClass } from '@/utils/signalLabels';
 import ManageWatchlistModal from './ManageWatchlistModal';
 
 function formatSignalChange(stamp: string | null): string | null {
@@ -108,9 +108,10 @@ export default function TickerBar() {
                 const positive = (quote?.changePct ?? 0) >= 0;
                 const isActive =
                   selectedView === 'ticker' && selectedTicker === ticker;
-                const signalLabel = signal
-                  ? internalCircleLabel(signal.finalLabel, signal.finalScore)
-                  : null;
+                const signalMeta = getSignalMeta(
+                  signal?.finalLabel,
+                  signal?.finalScore,
+                );
                 const changedAt = formatSignalChange(item?.signalChangedAt ?? null);
 
                 return (
@@ -125,15 +126,19 @@ export default function TickerBar() {
                         : 'border-border bg-card hover:border-muted-foreground/40'
                     }`}
                   >
-                    <div className="flex items-center gap-2">
+                    <div className="flex items-center gap-1.5">
+                      {loadingSnapshot && !signal ? (
+                        <span className="h-4 w-9 animate-pulse rounded bg-muted" />
+                      ) : (
+                        <span
+                          className={`rounded px-1.5 py-0.5 text-[10px] font-semibold tracking-wide ${toneClass(signalMeta.tone)}`}
+                        >
+                          {signalMeta.internal}
+                        </span>
+                      )}
                       <span className="text-sm font-semibold text-foreground">
                         {ticker}
                       </span>
-                      {signalLabel ? (
-                        <span className="rounded bg-muted px-1.5 py-0.5 text-[10px] font-medium text-muted-foreground">
-                          {signalLabel}
-                        </span>
-                      ) : null}
                     </div>
                     {loadingSnapshot && !quote ? (
                       <div className="mt-1 h-3 w-12 animate-pulse rounded bg-muted" />
