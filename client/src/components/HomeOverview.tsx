@@ -1,6 +1,6 @@
 import { useEffect, useMemo, useState } from 'react';
 import axios from 'axios';
-import type { NewsItem, SignalHistoryPoint, StockQuote } from '@/types/stock.types';
+import type { NewsItem, WatchlistSnapshotItem } from '@/types/stock.types';
 import { API_BASE_URL } from '@/utils/constants';
 import { formatApiError } from '@/utils/apiError';
 import { formatChangePct } from '@/utils/formatters';
@@ -22,68 +22,36 @@ export default function HomeOverview() {
   const tickers = useWatchlistStore((s) => s.tickers);
   const selectTicker = useStockStore((s) => s.selectTicker);
 
-  const [quotes, setQuotes] = useState<Record<string, StockQuote | null>>({});
-  const [signals, setSignals] = useState<Record<string, SignalHistoryPoint | null>>({});
+  const [snapshot, setSnapshot] = useState<WatchlistSnapshotItem[]>([]);
   const [marketNews, setMarketNews] = useState<NewsItem[]>([]);
   const [watchlistNews, setWatchlistNews] = useState<NewsItem[]>([]);
-  const [loadingQuotes, setLoadingQuotes] = useState(false);
+  const [loadingSnapshot, setLoadingSnapshot] = useState(false);
   const [marketError, setMarketError] = useState<string | null>(null);
   const [watchError, setWatchError] = useState<string | null>(null);
   const [newsLoading, setNewsLoading] = useState(true);
 
   useEffect(() => {
     if (!tickers.length) {
-      setQuotes({});
-      setSignals({});
+      setSnapshot([]);
       return;
     }
     let cancelled = false;
-    setLoadingQuotes(true);
+    setLoadingSnapshot(true);
     void (async () => {
-      const results = await Promise.all(
-        tickers.map(async (ticker) => {
-          try {
-            const { data } = await axios.get<StockQuote>(
-              `${API_BASE_URL}/api/stock/${encodeURIComponent(ticker)}`,
-            );
-            return [ticker, data] as const;
-          } catch {
-            return [ticker, null] as const;
-          }
-        }),
-      );
-      if (!cancelled) {
-        setQuotes(Object.fromEntries(results));
-        setLoadingQuotes(false);
-      }
-    })();
-    return () => {
-      cancelled = true;
-    };
-  }, [tickers]);
-
-  useEffect(() => {
-    if (!tickers.length) {
-      setSignals({});
-      return;
-    }
-    let cancelled = false;
-    void (async () => {
-      const results = await Promise.all(
-        tickers.map(async (ticker) => {
-          try {
-            const { data } = await axios.get<SignalHistoryPoint[]>(
-              `${API_BASE_URL}/api/signals/${encodeURIComponent(ticker)}/history`,
-            );
-            const latest = data.length ? data[data.length - 1] : null;
-            return [ticker, latest] as const;
-          } catch {
-            return [ticker, null] as const;
-          }
-        }),
-      );
-      if (!cancelled) {
-        setSignals(Object.fromEntries(results));
+      try {
+        const { data } = await axios.get<WatchlistSnapshotItem[]>(
+          `${API_BASE_URL}/api/watchlist/snapshot`,
+          { params: { tickers: tickers.join(',') } },
+        );
+        if (!cancelled) {
+          setSnapshot(data);
+          setLoadingSnapshot(false);
+        }
+      } catch {
+        if (!cancelled) {
+          setSnapshot([]);
+          setLoadingSnapshot(false);
+        }
       }
     })();
     return () => {
@@ -147,12 +115,12 @@ export default function HomeOverview() {
     };
   }, [tickers]);
 
-  const snapshot = useMemo(() => {
-    const rows = tickers
-      .map((ticker) => {
-        const quote = quotes[ticker];
+  const marketSnapshot = useMemo(() => {
+    const rows = snapshot
+      .map((item) => {
+        const quote = item.quote;
         if (!quote) return null;
-        return { ticker, changePct: quote.changePct };
+        return { ticker: item.ticker, changePct: quote.changePct };
       })
       .filter(Boolean) as Array<{ ticker: string; changePct: number }>;
 
@@ -164,8 +132,8 @@ export default function HomeOverview() {
     let buy = 0;
     let hold = 0;
     let sell = 0;
-    for (const ticker of tickers) {
-      const point = signals[ticker];
+    for (const item of snapshot) {
+      const point = item.latestSignal;
       if (!point) continue;
       const label = internalCircleLabel(point.finalLabel, point.finalScore);
       if (label === 'BUY') buy += 1;
@@ -182,7 +150,7 @@ export default function HomeOverview() {
       gainer: sorted[0] ?? null,
       loser: sorted[sorted.length - 1] ?? null,
     };
-  }, [tickers, quotes, signals]);
+  }, [snapshot]);
 
   return (
     <div className="space-y-6">
@@ -200,75 +168,80 @@ export default function HomeOverview() {
         </div>
 
         <div className="mt-4 grid gap-3 sm:grid-cols-2 lg:grid-cols-3">
-          <div className="rounded-lg border border-border bg-card-secondary px-3 py-3">
-            <p className="text-[11px] uppercase tracking-wide text-muted-foreground">
-              Watchlist avg
-            </p>
-            <p className="mt-1 text-sm font-semibold tabular-nums text-foreground">
-              {snapshot.avgChange != null ? (
-                <span
-                  className={
-                    snapshot.avgChange >= 0 ? 'text-bullish' : 'text-bearish'
-                  }
+          {loadingSnapshot && tickers.length > 0 ? (
+            Array.from({ length: 3 }).map((_, i) => (
+              <div key={i} className="h-16 animate-pulse rounded-lg bg-muted" />
+            ))
+          ) : (
+            <>
+              <div className="rounded-lg border border-border bg-card-secondary px-3 py-3">
+                <p className="text-[11px] uppercase tracking-wide text-muted-foreground">
+                  Watchlist avg
+                </p>
+                <p className="mt-1 text-sm font-semibold tabular-nums text-foreground">
+                  {marketSnapshot.avgChange != null ? (
+                    <span
+                      className={
+                        marketSnapshot.avgChange >= 0 ? 'text-bullish' : 'text-bearish'
+                      }
+                    >
+                      {formatChangePct(marketSnapshot.avgChange)}
+                    </span>
+                  ) : (
+                    '—'
+                  )}
+                </p>
+              </div>
+              <div className="rounded-lg border border-border bg-card-secondary px-3 py-3">
+                <p className="text-[11px] uppercase tracking-wide text-muted-foreground">
+                  Signal counts
+                </p>
+                <p className="mt-1 text-sm font-semibold text-foreground">
+                  <span className="text-bullish">BUY: {marketSnapshot.buy}</span>
+                  <span className="mx-2 text-muted-foreground">·</span>
+                  <span className="text-muted-foreground">HOLD: {marketSnapshot.hold}</span>
+                  <span className="mx-2 text-muted-foreground">·</span>
+                  <span className="text-bearish">SELL: {marketSnapshot.sell}</span>
+                </p>
+              </div>
+              {marketSnapshot.gainer ? (
+                <button
+                  type="button"
+                  onClick={() => selectTicker(marketSnapshot.gainer!.ticker)}
+                  className="rounded-lg border border-border bg-card-secondary px-3 py-3 text-left transition hover:border-muted-foreground/40"
                 >
-                  {formatChangePct(snapshot.avgChange)}
-                </span>
-              ) : (
-                '—'
-              )}
-            </p>
-          </div>
-          <div className="rounded-lg border border-border bg-card-secondary px-3 py-3">
-            <p className="text-[11px] uppercase tracking-wide text-muted-foreground">
-              Signal counts
-            </p>
-            <p className="mt-1 text-sm font-semibold text-foreground">
-              <span className="text-bullish">BUY: {snapshot.buy}</span>
-              <span className="mx-2 text-muted-foreground">·</span>
-              <span className="text-muted-foreground">HOLD: {snapshot.hold}</span>
-              <span className="mx-2 text-muted-foreground">·</span>
-              <span className="text-bearish">SELL: {snapshot.sell}</span>
-            </p>
-          </div>
-          {snapshot.gainer ? (
-            <button
-              type="button"
-              onClick={() => selectTicker(snapshot.gainer!.ticker)}
-              className="rounded-lg border border-border bg-card-secondary px-3 py-3 text-left transition hover:border-muted-foreground/40"
-            >
-              <p className="text-[11px] uppercase tracking-wide text-muted-foreground">
-                Top gainer
-              </p>
-              <p className="mt-1 text-sm font-semibold text-foreground">
-                {snapshot.gainer.ticker}{' '}
-                <span className="text-bullish">
-                  {formatChangePct(snapshot.gainer.changePct)}
-                </span>
-              </p>
-            </button>
-          ) : null}
-          {snapshot.loser && snapshot.loser.ticker !== snapshot.gainer?.ticker ? (
-            <button
-              type="button"
-              onClick={() => selectTicker(snapshot.loser!.ticker)}
-              className="rounded-lg border border-border bg-card-secondary px-3 py-3 text-left transition hover:border-muted-foreground/40"
-            >
-              <p className="text-[11px] uppercase tracking-wide text-muted-foreground">
-                Top loser
-              </p>
-              <p className="mt-1 text-sm font-semibold text-foreground">
-                {snapshot.loser.ticker}{' '}
-                <span className="text-bearish">
-                  {formatChangePct(snapshot.loser.changePct)}
-                </span>
-              </p>
-            </button>
-          ) : null}
+                  <p className="text-[11px] uppercase tracking-wide text-muted-foreground">
+                    Top gainer
+                  </p>
+                  <p className="mt-1 text-sm font-semibold text-foreground">
+                    {marketSnapshot.gainer.ticker}{' '}
+                    <span className="text-bullish">
+                      {formatChangePct(marketSnapshot.gainer.changePct)}
+                    </span>
+                  </p>
+                </button>
+              ) : null}
+              {marketSnapshot.loser &&
+              marketSnapshot.loser.ticker !== marketSnapshot.gainer?.ticker ? (
+                <button
+                  type="button"
+                  onClick={() => selectTicker(marketSnapshot.loser!.ticker)}
+                  className="rounded-lg border border-border bg-card-secondary px-3 py-3 text-left transition hover:border-muted-foreground/40"
+                >
+                  <p className="text-[11px] uppercase tracking-wide text-muted-foreground">
+                    Top loser
+                  </p>
+                  <p className="mt-1 text-sm font-semibold text-foreground">
+                    {marketSnapshot.loser.ticker}{' '}
+                    <span className="text-bearish">
+                      {formatChangePct(marketSnapshot.loser.changePct)}
+                    </span>
+                  </p>
+                </button>
+              ) : null}
+            </>
+          )}
         </div>
-
-        {loadingQuotes && tickers.length > 0 ? (
-          <p className="mt-3 text-xs text-muted-foreground">Refreshing watchlist quotes…</p>
-        ) : null}
       </section>
 
       <div className="grid gap-4 lg:grid-cols-2 lg:items-start">

@@ -10,11 +10,13 @@ from sqlalchemy.orm import Session
 
 from db.database import get_db
 from models.stock import AppSetting, WatchlistItem
+from models.user import User
 from schemas.stock_schema import (
     SymbolSearchResult,
     WatchlistAddRequest,
     WatchlistItemResponse,
 )
+from services.auth_service import get_current_user_optional
 from services.market_data import get_stock_quote
 from services.symbol_search import search_symbols
 
@@ -47,8 +49,17 @@ def _normalize_ticker(raw: str) -> str:
     return ticker
 
 
-def ensure_watchlist_seeded(db: Session) -> None:
-    """Seed defaults once. Empty lists after user deletes stay empty."""
+def _scoped_query(db: Session, user: User | None):
+    query = db.query(WatchlistItem)
+    if user:
+        return query.filter(WatchlistItem.user_id == user.id)
+    return query.filter(WatchlistItem.user_id.is_(None))
+
+
+def ensure_watchlist_seeded(db: Session, user: User | None = None) -> None:
+    """Seed defaults once for anonymous watchlists. Empty lists after user deletes stay empty."""
+    if user is not None:
+        return
     flag = db.query(AppSetting).filter(AppSetting.key == _SEED_FLAG).first()
     if flag:
         return
@@ -56,7 +67,7 @@ def ensure_watchlist_seeded(db: Session) -> None:
     now = datetime.now(tz=timezone.utc)
     existing = {
         row.ticker
-        for row in db.query(WatchlistItem.ticker).all()
+        for row in db.query(WatchlistItem.ticker).filter(WatchlistItem.user_id.is_(None)).all()
     }
     # First-time / upgrade: ensure default symbols exist without exceeding limit.
     if len(existing) == 0:
@@ -64,6 +75,7 @@ def ensure_watchlist_seeded(db: Session) -> None:
             db.add(
                 WatchlistItem(
                     ticker=symbol,
+                    user_id=None,
                     company_name=None,
                     exchange="US",
                     asset_type="Stock",
@@ -81,6 +93,7 @@ def ensure_watchlist_seeded(db: Session) -> None:
             db.add(
                 WatchlistItem(
                     ticker=symbol,
+                    user_id=None,
                     company_name=None,
                     exchange="US",
                     asset_type="Stock",
@@ -109,10 +122,13 @@ def _to_response(item: WatchlistItem) -> WatchlistItemResponse:
 
 
 @router.get("/watchlist", response_model=list[WatchlistItemResponse])
-def list_watchlist(db: Session = Depends(get_db)) -> list[WatchlistItemResponse]:
-    ensure_watchlist_seeded(db)
+def list_watchlist(
+    db: Session = Depends(get_db),
+    user: User | None = Depends(get_current_user_optional),
+) -> list[WatchlistItemResponse]:
+    ensure_watchlist_seeded(db, user)
     items = (
-        db.query(WatchlistItem)
+        _scoped_query(db, user)
         .order_by(WatchlistItem.added_at.asc(), WatchlistItem.id.asc())
         .limit(_WATCHLIST_LIMIT)
         .all()
@@ -142,18 +158,19 @@ def search_watchlist_symbols(
 def add_watchlist_item(
     body: WatchlistAddRequest,
     db: Session = Depends(get_db),
+    user: User | None = Depends(get_current_user_optional),
 ) -> WatchlistItemResponse:
-    ensure_watchlist_seeded(db)
+    ensure_watchlist_seeded(db, user)
     ticker = _normalize_ticker(body.ticker)
 
-    existing = db.query(WatchlistItem).filter(WatchlistItem.ticker == ticker).first()
+    existing = _scoped_query(db, user).filter(WatchlistItem.ticker == ticker).first()
     if existing:
         raise HTTPException(
             status_code=409,
             detail="This ticker is already in your watchlist.",
         )
 
-    count = db.query(WatchlistItem).count()
+    count = _scoped_query(db, user).count()
     if count >= _WATCHLIST_LIMIT:
         raise HTTPException(
             status_code=400,
@@ -188,6 +205,7 @@ def add_watchlist_item(
 
     item = WatchlistItem(
         ticker=ticker,
+        user_id=user.id if user else None,
         company_name=company_name,
         exchange=exchange or "US",
         asset_type=asset_type or "Stock",
@@ -200,9 +218,13 @@ def add_watchlist_item(
 
 
 @router.delete("/watchlist/{ticker}", status_code=204, response_class=Response)
-def remove_watchlist_item(ticker: str, db: Session = Depends(get_db)) -> Response:
+def remove_watchlist_item(
+    ticker: str,
+    db: Session = Depends(get_db),
+    user: User | None = Depends(get_current_user_optional),
+) -> Response:
     symbol = _normalize_ticker(ticker)
-    item = db.query(WatchlistItem).filter(WatchlistItem.ticker == symbol).first()
+    item = _scoped_query(db, user).filter(WatchlistItem.ticker == symbol).first()
     if not item:
         raise HTTPException(status_code=404, detail=f"{symbol} is not on your watchlist")
     db.delete(item)

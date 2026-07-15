@@ -90,6 +90,15 @@ export default function BacktestingPanel({
           <p className="text-sm text-foreground">
             Signals tested: <span className="font-semibold">{result.signalsTested}</span>
           </p>
+          {result.benchmark?.avg5dReturn != null ? (
+            <p className="text-sm text-muted-foreground">
+              SPY benchmark avg 5D return:{' '}
+              <span className="font-medium text-foreground">
+                {fmt(result.benchmark.avg5dReturn)}
+              </span>{' '}
+              ({result.benchmark.periods} periods)
+            </p>
+          ) : null}
 
           <div className="overflow-x-auto">
             <table className="w-full min-w-[520px] text-left text-sm">

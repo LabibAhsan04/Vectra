@@ -5,7 +5,13 @@ polygon-api-client==1.14.4
 finnhub-python==2.4.22
 sqlalchemy==2.0.37
 aiosqlite==0.20.0
+psycopg2-binary==2.9.10
 python-dotenv==1.0.1
 httpx==0.28.1
 pydantic-settings==2.7.1
 pytest==8.3.4
+python-jose[cryptography]==3.3.0
+passlib[bcrypt]==1.7.4
+bcrypt==4.0.1
+apscheduler==3.10.4
+websockets==14.1

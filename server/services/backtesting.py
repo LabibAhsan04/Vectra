@@ -42,6 +42,8 @@ def run_backtest(
     *,
     dates: Sequence[str],
     closes: Sequence[float],
+    benchmark_closes: Sequence[float] | None = None,
+    benchmark_dates: Sequence[str] | None = None,
 ) -> dict[str, Any]:
     """Compute forward-return stats by label and score bucket."""
     by_label: dict[str, list[dict[str, float | None]]] = defaultdict(list)
@@ -114,10 +116,25 @@ def run_backtest(
             }
         )
 
+    benchmark: dict[str, Any] | None = None
+    if benchmark_closes and benchmark_dates and len(benchmark_closes) >= 21:
+        spy_returns: list[float] = []
+        for i in range(min(len(benchmark_closes) - 20, len(closes) - 20)):
+            r = _forward_return(benchmark_closes, i, 5)
+            if r is not None:
+                spy_returns.append(r)
+        if spy_returns:
+            benchmark = {
+                "symbol": "SPY",
+                "avg5dReturn": round(sum(spy_returns) / len(spy_returns), 3),
+                "periods": len(spy_returns),
+            }
+
     return {
         "signalsTested": tested,
         "byLabel": label_rows,
         "byBucket": bucket_rows,
+        "benchmark": benchmark,
         "disclaimer": (
             "Backtesting is historical analysis only and does not guarantee future performance."
         ),

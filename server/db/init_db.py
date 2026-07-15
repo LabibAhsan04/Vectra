@@ -6,6 +6,7 @@ from sqlalchemy import text
 
 from models.stock import Base
 from models import signal_history  # noqa: F401 — register tables
+from models import user  # noqa: F401 — register tables
 from db.database import engine
 
 
@@ -24,6 +25,8 @@ def _migrate_watchlist_columns() -> None:
             alters.append("ALTER TABLE watchlist ADD COLUMN exchange VARCHAR(64)")
         if "asset_type" not in names:
             alters.append("ALTER TABLE watchlist ADD COLUMN asset_type VARCHAR(64)")
+        if "user_id" not in names:
+            alters.append("ALTER TABLE watchlist ADD COLUMN user_id INTEGER")
         for stmt in alters:
             conn.execute(text(stmt))
 

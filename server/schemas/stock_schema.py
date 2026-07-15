@@ -140,6 +140,96 @@ class WatchlistItemResponse(BaseModel):
     addedAt: datetime
 
 
+class WatchlistSnapshotItem(BaseModel):
+    ticker: str
+    quote: StockQuote | None = None
+    latestSignal: SignalHistoryPoint | None = None
+    signalChangedAt: datetime | None = None
+
+
+class AuthRegisterRequest(BaseModel):
+    email: str
+    password: str = Field(min_length=8)
+    name: str = ""
+
+
+class AuthLoginRequest(BaseModel):
+    email: str
+    password: str
+
+
+class AuthUserResponse(BaseModel):
+    id: int
+    email: str
+    name: str | None = None
+
+
+class AuthTokenResponse(BaseModel):
+    token: str
+    user: AuthUserResponse
+
+
+class UserAlertRuleRequest(BaseModel):
+    ticker: str
+    ruleType: str
+    threshold: float
+
+
+class UserAlertRuleResponse(BaseModel):
+    id: int
+    ticker: str
+    ruleType: str
+    threshold: float
+    active: bool
+    createdAt: datetime
+
+
+class PeerRow(BaseModel):
+    ticker: str
+    companyName: str
+    price: float
+    changePct: float
+    peRatio: float
+    marketCap: float
+    finalScore: int | None = None
+    finalLabel: str | None = None
+    isTarget: bool = False
+
+
+class PeerComparisonResponse(BaseModel):
+    ticker: str
+    targetChangePct: float
+    sectorAvgChangePct: float | None = None
+    vsSector: float | None = None
+    peers: list[PeerRow]
+
+
+class EarningsEvent(BaseModel):
+    ticker: str
+    date: str
+    eventType: str
+    epsEstimate: float | None = None
+    revenueEstimate: float | None = None
+    hour: str = ""
+    label: str
+
+
+class CompareTickerRow(BaseModel):
+    ticker: str
+    companyName: str
+    price: float
+    changePct: float
+    peRatio: float
+    finalScore: int | None = None
+    finalLabel: str | None = None
+    rsi: float | None = None
+    relativeVolume: float | None = None
+
+
+class CompareResponse(BaseModel):
+    tickers: list[CompareTickerRow]
+
+
 class SymbolSearchResult(BaseModel):
     symbol: str
     companyName: str

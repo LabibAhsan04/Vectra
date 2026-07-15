@@ -3,7 +3,10 @@ import axios from 'axios';
 import {
   Area,
   AreaChart,
+  Bar,
+  BarChart,
   CartesianGrid,
+  ComposedChart,
   Legend,
   Line,
   ResponsiveContainer,
@@ -30,12 +33,47 @@ interface PriceChartProps {
   ticker: string;
 }
 
-type ChartRow = PricePoint & { ma20?: number | null; ma50?: number | null };
+type ChartRow = PricePoint & {
+  ma20?: number | null;
+  ma50?: number | null;
+  bbUpper?: number | null;
+  bbLower?: number | null;
+  macd?: number | null;
+};
 
-function withMovingAverages(points: PricePoint[]): ChartRow[] {
+function ema(values: number[], period: number): number[] {
+  if (!values.length) return [];
+  const k = 2 / (period + 1);
+  const out: number[] = [values[0]];
+  for (let i = 1; i < values.length; i += 1) {
+    out.push(values[i] * k + out[i - 1] * (1 - k));
+  }
+  return out;
+}
+
+function withIndicators(points: PricePoint[]): ChartRow[] {
+  const closes = points.map((p) => p.close);
+  const ema12 = ema(closes, 12);
+  const ema26 = ema(closes, 26);
   return points.map((point, index) => {
     const ma20Window = points.slice(Math.max(0, index - 19), index + 1);
     const ma50Window = points.slice(Math.max(0, index - 49), index + 1);
+    const bbWindow = points.slice(Math.max(0, index - 19), index + 1);
+    const bbMean =
+      bbWindow.length >= 20
+        ? bbWindow.reduce((sum, p) => sum + p.close, 0) / bbWindow.length
+        : null;
+    let bbUpper: number | null = null;
+    let bbLower: number | null = null;
+    if (bbMean != null && bbWindow.length >= 20) {
+      const variance =
+        bbWindow.reduce((sum, p) => sum + (p.close - bbMean) ** 2, 0) / bbWindow.length;
+      const std = Math.sqrt(variance);
+      bbUpper = bbMean + 2 * std;
+      bbLower = bbMean - 2 * std;
+    }
+    const macd =
+      ema12[index] != null && ema26[index] != null ? ema12[index] - ema26[index] : null;
     return {
       ...point,
       ma20:
@@ -46,6 +84,9 @@ function withMovingAverages(points: PricePoint[]): ChartRow[] {
         ma50Window.length >= 50
           ? ma50Window.reduce((sum, p) => sum + p.close, 0) / ma50Window.length
           : null,
+      bbUpper,
+      bbLower,
+      macd,
     };
   });
 }
@@ -114,6 +155,9 @@ function PriceChartBody({ ticker }: { ticker: string }) {
   const [error, setError] = useState<string | null>(null);
   const [showMa20Toggle, setShowMa20Toggle] = useState(true);
   const [showMa50Toggle, setShowMa50Toggle] = useState(true);
+  const [showBbToggle, setShowBbToggle] = useState(false);
+  const [showMacdToggle, setShowMacdToggle] = useState(false);
+  const [showVolumeToggle, setShowVolumeToggle] = useState(true);
   const [lastUpdated, setLastUpdated] = useState<string | null>(null);
   const requestIdRef = useRef(0);
 
@@ -179,14 +223,18 @@ function PriceChartBody({ ticker }: { ticker: string }) {
   const stroke = trendUp ? 'var(--color-bullish)' : 'var(--color-bearish)';
   const fillId = `price-fill-${gradientId}`;
   const domain = useMemo(() => yDomain(points), [points]);
-  const chartRows = useMemo(() => withMovingAverages(points), [points]);
+  const chartRows = useMemo(() => withIndicators(points), [points]);
   const showChart = points.length > 0;
   const showSkeleton = loading && !showChart;
   const pendingRange = showChart && range !== loadedRange;
   const hasMa20 = chartRows.some((p) => p.ma20 != null);
   const hasMa50 = chartRows.some((p) => p.ma50 != null);
+  const hasBb = chartRows.some((p) => p.bbUpper != null);
+  const hasMacd = chartRows.some((p) => p.macd != null);
   const showMa20 = hasMa20 && showMa20Toggle;
   const showMa50 = hasMa50 && showMa50Toggle;
+  const showBb = hasBb && showBbToggle;
+  const showMacd = hasMacd && showMacdToggle;
 
   return (
     <section className="rounded-xl border border-border bg-card p-4 sm:p-6">
@@ -256,6 +304,44 @@ function PriceChartBody({ ticker }: { ticker: string }) {
               }`}
             >
               MA50
+            </button>
+            <button
+              type="button"
+              onClick={() => setShowBbToggle((v) => !v)}
+              aria-pressed={showBbToggle}
+              disabled={!hasBb}
+              className={`rounded-md px-2.5 py-1 text-xs font-medium transition disabled:opacity-40 ${
+                showBbToggle
+                  ? 'bg-muted text-foreground'
+                  : 'text-muted-foreground hover:text-foreground'
+              }`}
+            >
+              BB
+            </button>
+            <button
+              type="button"
+              onClick={() => setShowMacdToggle((v) => !v)}
+              aria-pressed={showMacdToggle}
+              disabled={!hasMacd}
+              className={`rounded-md px-2.5 py-1 text-xs font-medium transition disabled:opacity-40 ${
+                showMacdToggle
+                  ? 'bg-muted text-foreground'
+                  : 'text-muted-foreground hover:text-foreground'
+              }`}
+            >
+              MACD
+            </button>
+            <button
+              type="button"
+              onClick={() => setShowVolumeToggle((v) => !v)}
+              aria-pressed={showVolumeToggle}
+              className={`rounded-md px-2.5 py-1 text-xs font-medium transition ${
+                showVolumeToggle
+                  ? 'bg-muted text-foreground'
+                  : 'text-muted-foreground hover:text-foreground'
+              }`}
+            >
+              Vol
             </button>
           </div>
         </div>
@@ -389,10 +475,65 @@ function PriceChartBody({ ticker }: { ticker: string }) {
                   isAnimationActive={false}
                 />
               ) : null}
+              {showBb ? (
+                <>
+                  <Line
+                    type="monotone"
+                    dataKey="bbUpper"
+                    name="BB Upper"
+                    stroke="#71717a"
+                    strokeWidth={1}
+                    dot={false}
+                    connectNulls={false}
+                    isAnimationActive={false}
+                  />
+                  <Line
+                    type="monotone"
+                    dataKey="bbLower"
+                    name="BB Lower"
+                    stroke="#71717a"
+                    strokeWidth={1}
+                    dot={false}
+                    connectNulls={false}
+                    isAnimationActive={false}
+                  />
+                </>
+              ) : null}
             </AreaChart>
           </ResponsiveContainer>
         </div>
       )}
+
+      {showChart && showVolumeToggle ? (
+        <div className="mt-3 h-16 w-full min-w-0">
+          <ResponsiveContainer width="100%" height="100%" minWidth={0}>
+            <BarChart data={chartRows} margin={{ top: 0, right: 8, left: 0, bottom: 0 }}>
+              <XAxis dataKey="date" hide />
+              <YAxis hide width={0} />
+              <Bar dataKey="volume" fill="var(--color-muted-foreground)" opacity={0.45} />
+            </BarChart>
+          </ResponsiveContainer>
+        </div>
+      ) : null}
+
+      {showChart && showMacdToggle ? (
+        <div className="mt-3 h-16 w-full min-w-0">
+          <ResponsiveContainer width="100%" height="100%" minWidth={0}>
+            <ComposedChart data={chartRows} margin={{ top: 0, right: 8, left: 0, bottom: 0 }}>
+              <XAxis dataKey="date" hide />
+              <YAxis hide width={0} />
+              <Line
+                type="monotone"
+                dataKey="macd"
+                stroke="#60a5fa"
+                strokeWidth={1.25}
+                dot={false}
+                connectNulls={false}
+              />
+            </ComposedChart>
+          </ResponsiveContainer>
+        </div>
+      ) : null}
     </section>
   );
 }

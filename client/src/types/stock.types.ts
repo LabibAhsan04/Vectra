@@ -145,6 +145,69 @@ export interface BacktestResult {
     count: number;
     avg5dReturn: number | null;
   }>;
+  benchmark?: {
+    symbol: string;
+    avg5dReturn: number | null;
+    periods: number;
+  } | null;
   disclaimer: string;
   message?: string;
+}
+
+export interface WatchlistSnapshotItem {
+  ticker: string;
+  quote: StockQuote | null;
+  latestSignal: SignalHistoryPoint | null;
+  signalChangedAt: string | null;
+}
+
+export interface PeerRow {
+  ticker: string;
+  companyName: string;
+  price: number;
+  changePct: number;
+  peRatio: number;
+  marketCap: number;
+  finalScore: number | null;
+  finalLabel: string | null;
+  isTarget: boolean;
+}
+
+export interface PeerComparison {
+  ticker: string;
+  targetChangePct: number;
+  sectorAvgChangePct: number | null;
+  vsSector: number | null;
+  peers: PeerRow[];
+}
+
+export interface EarningsEvent {
+  ticker: string;
+  date: string;
+  eventType: string;
+  epsEstimate?: number | null;
+  revenueEstimate?: number | null;
+  hour?: string;
+  label: string;
+}
+
+export interface CompareRow {
+  ticker: string;
+  companyName: string;
+  price: number;
+  changePct: number;
+  peRatio: number;
+  finalScore: number | null;
+  finalLabel: string | null;
+  rsi: number | null;
+  relativeVolume: number | null;
+}
+
+export interface UserAlertRule {
+  id: number;
+  ticker: string;
+  ruleType: string;
+  threshold: number;
+  active: boolean;
+  createdAt: string;
 }

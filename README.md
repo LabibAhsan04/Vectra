@@ -1,176 +1,216 @@
 # Vectra
 
-Vectra is an evidence-based stock intelligence platform that analyzes price momentum, technical indicators, news relevance, and AI-assisted explanations to generate transparent bullish, neutral, or bearish research signals.
+**Evidence-based stock signal intelligence** — a full-stack research dashboard that scores momentum, technicals, sentiment, fundamentals, and catalysts, then explains the result with transparent math and an AI layer.
+
+[![Live Demo](https://img.shields.io/badge/demo-vectra--green.vercel.app-22c55e)](https://vectra-green.vercel.app)
+[![License: MIT](https://img.shields.io/badge/license-MIT-blue.svg)](LICENSE)
 
 > **Disclaimer:** Vectra is for educational and research purposes only. It does not provide financial advice and does not execute trades.
 
-## Overview
+---
 
-Vectra demonstrates a production-minded CS/fintech portfolio stack: live market APIs, a transparent scoring engine, SQLite persistence, OpenRouter explanations with anti-hallucination guards, caching, alerts, backtesting-lite, pytest coverage, and Vercel + Railway deployment.
+## Why Vectra?
+
+Most stock dashboards either dump raw data or hide the logic behind a black-box “AI score.” Vectra sits in the middle:
 
 | Vectra does | Vectra does not |
 |-------------|-----------------|
-| Score evidence across momentum, technicals, sentiment, growth, data quality | Execute trades |
-| Label **Bullish / Neutral / Bearish** research signals | Give financial advice or trade instructions |
-| Explain scores with OpenRouter (or a template fallback) | Let the LLM invent fundamentals or override scores |
-| Split company vs market/sector news with relevance scores | Guarantee outcomes |
+| Score evidence across 5 weighted factors | Execute trades |
+| Show the formula, weights, and contribution notes | Invent fundamentals or override scores with AI |
+| Label **Bullish / Neutral / Bearish** research signals | Give buy/sell instructions as financial advice |
+| Split company vs market news with relevance tags | Guarantee outcomes |
 
-Live app: [vectra-green.vercel.app](https://vectra-green.vercel.app)
+**Live app:** [vectra-green.vercel.app](https://vectra-green.vercel.app)
+
+---
 
 ## Features
 
-- Live quotes, charts (MA20/MA50 toggles), and watchlist
-- Transparent **Signal Analysis** with score circle, formula, and contribution notes
-- Company News vs Market & Sector News + relevance tags (`Company`, `Sector`, `Competitor`, `Market`, `ETF`)
-- SQLite signal history, dashboard alerts, and backtesting-lite (1D/5D/20D)
-- OpenRouter explanation layer with template fallback and ~45 min cache
-- Graceful rate-limit/empty states
+### Market & watchlist
+- Live quotes (Finnhub-first) with WebSocket refresh
+- Batch watchlist snapshot API — one request for Home + ticker bar
+- Persistent watchlist (SQLite + Railway volume, or PostgreSQL)
+- Optional JWT auth for per-user watchlists
 
-## Tech Stack
+### Charts & indicators
+- Price history (1M → 5Y) with MA20, MA50, Bollinger Bands, MACD, volume
+- Dark / light theme
+
+### Signal engine
+- Deterministic 5-factor scoring (Momentum, Technical, Sentiment, Fundamentals, Growth)
+- Finnhub fundamentals: P/E, revenue growth, margins, ROE
+- OpenRouter explanations with anti-hallucination guards + template fallback
+- Peer comparison vs sector competitors + SPY
+- Earnings calendar card
+
+### News & alerts
+- Company vs Market & Sector news with relevance classification
+- System alerts (score changes, MA crosses, volume spikes)
+- Custom user alert rules (price / score thresholds)
+
+### Research tools
+- Signal history chart + daily auto-snapshots
+- Backtesting-lite with SPY benchmark comparison
+- Compare up to 5 tickers side-by-side
+- Export watchlist / signals CSV, share JSON snapshot
+
+---
+
+## Tech stack
 
 | Layer | Technology |
 |-------|------------|
-| Frontend | React, TypeScript, Vite, Tailwind, Zustand, Recharts → Vercel |
-| Backend | Python, FastAPI, SQLAlchemy, SQLite → Railway |
-| Data | Finnhub, Polygon, Alpha Vantage (optional) |
-| AI | OpenRouter (`openrouter/free` default) |
-| Tests | pytest |
+| Frontend | React 19, TypeScript, Vite, Tailwind CSS 4, Zustand, Recharts |
+| Backend | Python 3.12, FastAPI, SQLAlchemy |
+| Database | SQLite (local / Railway volume) or PostgreSQL |
+| Data | Finnhub, Polygon, Alpha Vantage (fallback) |
+| AI | OpenRouter |
+| Deploy | Vercel (UI) + Railway (API) |
+| CI | GitHub Actions (pytest + TypeScript) |
+
+---
 
 ## Architecture
 
-See [docs/architecture.md](docs/architecture.md).
-
 ```
-APIs → normalize → indicators → signal engine → OpenRouter explain → SQLite → UI
+Market APIs → normalize → indicators → signal engine → OpenRouter explain → DB → React UI
 ```
 
-## How the Signal Engine Works
+See [docs/architecture.md](docs/architecture.md) and [docs/scoring_methodology.md](docs/scoring_methodology.md).
 
-Weights (reproducible in the UI):
+### Scoring formula
 
 ```
-Final Score = Momentum×0.25 + Technical×0.25 + Sentiment×0.20
-            + Fundamentals×0.15 + Growth×0.15
+Final = Momentum×0.25 + Technical×0.25 + Sentiment×0.20
+      + Fundamentals×0.15 + Growth×0.15
 ```
 
-Thresholds: Strong Bullish ≥80, Bullish ≥65, Neutral mid-range, Bearish ≤40, Strong Bearish ≤20.
+Thresholds: Strong Bullish ≥80 · Bullish ≥65 · Neutral mid-range · Bearish ≤40 · Strong Bearish ≤20.
 
-Full methodology: [docs/scoring_methodology.md](docs/scoring_methodology.md).
+---
 
-## Data Sources
+## Quick start
 
-- **Price / history:** Polygon → Finnhub → Alpha Vantage fallback
-- **News:** Finnhub company feed, then relevance-classified
-- **Explanations:** OpenRouter; template fallback if missing/rate-limited
-
-## OpenRouter AI Explanation Layer
-
-- Uses only structured evidence (scores, notes, headlines already fetched)
-- Must not invent revenue, earnings, margins, partnerships, or analyst upgrades
-- Must not use trade-command language or price targets in public explanations
-- BUY/HOLD/SELL may appear only as internal shorthand inside the score circle
-- Cached ~45 minutes per ticker + score + label; template if OpenRouter fails
-
-## Database Schema
-
-SQLite tables (plus watchlist):
-
-- `signals` — score snapshot, factor scores, explanation, sources
-- `news_items` — headlines with relevance + sentiment
-- `alerts` — label/score/volume/MA transition messages
-
-## Backtesting-Lite
-
-Saved signals are aligned to price history for forward returns (1 / 5 / 20 trading days), win rate by label, and averages by score bucket. Historical only — not a performance guarantee.
-
-## Screenshots
-
-Add local screenshots under `docs/screenshots/` after deploy (dashboard, Signal Analysis, news split, backtesting).
-
-## Setup Instructions
+### 1. Clone & configure
 
 ```bash
+git clone https://github.com/LabibAhsan04/Vectra.git
+cd Vectra
 cp .env.example .env
 cp client/.env.example client/.env
 ```
 
-Put API keys in the **root** `.env` (server-side only). Never commit `.env`.
+Add your API keys to the **root** `.env` only. Never commit `.env`.
 
-## Environment Variables
-
-| Variable | Where | Notes |
-|----------|-------|-------|
-| `POLYGON_API_KEY` | server / Railway | Quotes/history |
-| `FINNHUB_API_KEY` | server / Railway | Quotes/news |
-| `ALPHA_VANTAGE_KEY` | server / Railway | History fallback |
-| `OPENROUTER_API_KEY` | server / Railway | Explanations |
-| `OPENROUTER_MODEL` | server / Railway | Default `openrouter/free` |
-| `ALLOWED_ORIGINS` | Railway | Include Vercel URL |
-| `DATABASE_URL` | Railway | SQLite path |
-| `VITE_API_URL` | Vercel | Railway API base URL (no trailing slash) |
-
-## How to Run Locally
+### 2. Run locally
 
 ```bash
-# API
+# Terminal 1 — API
 cd server
 python -m venv .venv && source .venv/bin/activate
 pip install -r requirements.txt
 uvicorn main:app --reload --host 127.0.0.1 --port 8000
 
-# UI (second terminal)
+# Terminal 2 — UI
 cd client
 npm install
 npm run dev -- --host 127.0.0.1 --port 3000
 ```
 
-- API health: http://127.0.0.1:8000/health  
+- API: http://127.0.0.1:8000/health  
 - App: http://127.0.0.1:3000  
 
-### Tests
+### 3. Tests
 
 ```bash
-cd server && source .venv/bin/activate
-pip install -r requirements.txt
-cd ..
-pytest
+cd server && source .venv/bin/activate && pip install -r requirements.txt
+cd .. && pytest
+cd client && npx tsc --noEmit
 ```
+
+---
+
+## Environment variables
+
+| Variable | Where | Required | Notes |
+|----------|-------|----------|-------|
+| `POLYGON_API_KEY` | server | Yes | Quotes / history |
+| `FINNHUB_API_KEY` | server | Yes | Quotes / news / fundamentals |
+| `OPENROUTER_API_KEY` | server | Recommended | AI explanations |
+| `OPENROUTER_MODEL` | server | No | Default `openrouter/free` |
+| `ALPHA_VANTAGE_KEY` | server | No | History fallback |
+| `JWT_SECRET` | server | Prod | Change from default in production |
+| `DATABASE_URL` | server | No | Auto-resolves; see below |
+| `ALLOWED_ORIGINS` | server | Prod | Include your Vercel URL |
+| `VITE_API_URL` | Vercel | Prod | Railway API URL (no trailing slash) |
+
+**Only `VITE_API_URL` is public** in the browser bundle. All API keys stay server-side.
+
+### Database
+
+| Environment | Path |
+|-------------|------|
+| Local dev | `server/data/stocks.db` (auto-created) |
+| Railway | Mount volume at `/data` → uses `/data/stocks.db` |
+| PostgreSQL | `DATABASE_URL=postgresql://user:pass@host:5432/vectra` |
+
+---
 
 ## Deployment
 
 ### Backend — Railway
 
-1. Deploy from GitHub with **Root Directory** = `server`
-2. Set API keys + `ALLOWED_ORIGINS` (include production Vercel URL)
-3. Optional volume: `DATABASE_URL=sqlite:////data/stocks.db`
+1. Connect GitHub repo, set **Root Directory** = `server`
+2. Add API keys + `ALLOWED_ORIGINS` (your Vercel URL)
+3. Mount a **volume at `/data`** for persistent SQLite
+4. Set `JWT_SECRET` to a long random string
+5. Health check: `/health`
 
 ### Frontend — Vercel
 
 1. **Root Directory** = `client`
-2. Set `VITE_API_URL` to the Railway URL (no trailing slash)
-3. Redeploy API if CORS origins change
+2. Set `VITE_API_URL` to your Railway URL
+3. Redeploy after CORS changes on the API
 
-**Secrets never ship to the browser** — only `VITE_API_URL` is public.
+---
+
+## API overview
+
+| Endpoint | Description |
+|----------|-------------|
+| `GET /api/watchlist/snapshot` | Batch quotes + signals |
+| `POST /api/analyze` | Run signal analysis |
+| `GET /api/peers/{ticker}` | Peer comparison |
+| `GET /api/earnings/{ticker}` | Earnings calendar |
+| `GET /api/compare` | Side-by-side ticker stats |
+| `POST /api/auth/register` | Create account |
+| `GET /api/export/watchlist.csv` | CSV export |
+| `WS /api/ws/quotes/{ticker}` | Live quote stream |
+
+Full interactive docs: `/docs` when the API is running.
+
+---
 
 ## Limitations
 
-- Free API tiers rate-limit and often omit full fundamentals
-- Signal quality depends on news coverage and price history availability
-- SQLite on ephemeral hosts loses data unless a volume is mounted
-- Backtesting needs multiple saved signal snapshots over time
+- Free API tiers rate-limit and may omit some fundamentals
+- Backtesting needs accumulated signal history over time
+- AI explanations describe pre-computed scores — they do not fetch new facts
+- Research use only — not financial advice
 
-## Disclaimer
+---
 
-Vectra is for educational and research purposes only. It does not provide financial advice and does not execute trades.
+## Contributing
 
-## Future Improvements
+Issues and PRs welcome. Please do not commit secrets or `.env` files.
 
-- Richer fundamental ingestion (earnings transcripts / filings)
-- Multi-ticker watchlist score refresh
-- Persistent alert notifications (email/webhook)
-- Longer horizon backtests and walk-forward evaluation
-- Auth + per-user watchlists
+1. Fork the repo
+2. Create a feature branch
+3. Run `pytest` and `npx tsc --noEmit`
+4. Open a PR with a clear description
+
+---
 
 ## License
 
-MIT
+MIT — see [LICENSE](LICENSE).

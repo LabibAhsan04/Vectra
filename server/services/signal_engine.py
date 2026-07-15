@@ -37,6 +37,9 @@ def build_factor_scores_from_market(
     market_headlines: Sequence[str],
     fundamentals_available: bool,
     pe_ratio: float = 0.0,
+    revenue_growth_yoy: float | None = None,
+    profit_margin: float | None = None,
+    roe: float | None = None,
     company_bullish: int = 0,
     company_bearish: int = 0,
     company_neutral: int = 0,
@@ -202,6 +205,27 @@ def build_factor_scores_from_market(
                 notes["fundamentals"].append(
                     f"+5 low P/E ({pe_ratio:.1f}) — value or distress signal"
                 )
+        if revenue_growth_yoy is not None:
+            if revenue_growth_yoy > 10:
+                fundamentals += 10
+                notes["fundamentals"].append(f"+10 revenue growth YoY {revenue_growth_yoy:.1f}%")
+            elif revenue_growth_yoy < 0:
+                fundamentals -= 8
+                notes["fundamentals"].append(f"-8 revenue decline YoY {revenue_growth_yoy:.1f}%")
+        if profit_margin is not None:
+            if profit_margin > 15:
+                fundamentals += 6
+                notes["fundamentals"].append(f"+6 healthy profit margin {profit_margin:.1f}%")
+            elif profit_margin < 5:
+                fundamentals -= 5
+                notes["fundamentals"].append(f"-5 thin profit margin {profit_margin:.1f}%")
+        if roe is not None:
+            if roe > 15:
+                fundamentals += 5
+                notes["fundamentals"].append(f"+5 strong ROE {roe:.1f}%")
+            elif roe < 5:
+                fundamentals -= 4
+                notes["fundamentals"].append(f"-4 weak ROE {roe:.1f}%")
     else:
         fundamentals = 45
         notes["fundamentals"].append(

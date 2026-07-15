@@ -9,17 +9,28 @@ import AlertsPanel from './AlertsPanel';
 import SignalHistoryChart from './SignalHistoryChart';
 import BacktestingPanel from './BacktestingPanel';
 import HomeOverview from './HomeOverview';
+import CompareView from './CompareView';
+import PeerComparison from './PeerComparison';
+import EarningsCard from './EarningsCard';
+import UserAlertsPanel from './UserAlertsPanel';
+import ExportMenu from './ExportMenu';
+import AuthPanel from './AuthPanel';
 import ThemeToggle from './ThemeToggle';
 import { useStockStore } from '@/store/stockStore';
+import { useWatchlistStore } from '@/store/watchlistStore';
 import { useStockData } from '@/hooks/useStockData';
+import { useLiveQuote } from '@/hooks/useLiveQuote';
 import type { AIAnalysis, NewsItem } from '@/types/stock.types';
 
 export default function Dashboard() {
   const selectedView = useStockStore((s) => s.selectedView);
   const selectedTicker = useStockStore((s) => s.selectedTicker);
   const goHome = useStockStore((s) => s.goHome);
+  const goCompare = useStockStore((s) => s.goCompare);
   const activeTicker = selectedTicker ?? '';
+  const watchlistTickers = useWatchlistStore((s) => s.tickers);
   const { data, loading, error, fetchedAt } = useStockData(activeTicker);
+  const { quote: liveQuote } = useLiveQuote(activeTicker, data);
   const [analysis, setAnalysis] = useState<AIAnalysis | null>(null);
   const [analysisLoading, setAnalysisLoading] = useState(false);
   const [historyRefresh, setHistoryRefresh] = useState(0);
@@ -33,7 +44,7 @@ export default function Dashboard() {
   }, [analysis]);
 
   const lastUpdated = useMemo(() => {
-    const stamps = [data?.timestamp, fetchedAt].filter(Boolean) as string[];
+    const stamps = [liveQuote?.timestamp, fetchedAt].filter(Boolean) as string[];
     if (!stamps.length) {
       const analysisStamp = analysis?.generatedAt;
       if (!analysisStamp) return null;
@@ -51,7 +62,7 @@ export default function Dashboard() {
       minute: '2-digit',
       timeZoneName: 'short',
     });
-  }, [data?.timestamp, fetchedAt, analysis?.generatedAt]);
+  }, [liveQuote?.timestamp, fetchedAt, analysis?.generatedAt]);
 
   function handleAnalysis(next: AIAnalysis | null) {
     setAnalysis(next);
@@ -59,6 +70,7 @@ export default function Dashboard() {
   }
 
   const homeActive = selectedView === 'home';
+  const compareActive = selectedView === 'compare';
 
   return (
     <div className="min-h-screen bg-background px-4 py-6 sm:px-6">
@@ -72,7 +84,8 @@ export default function Dashboard() {
               Evidence-based stock signal intelligence
             </p>
           </div>
-          <div className="flex items-center gap-2">
+          <div className="flex flex-wrap items-center gap-2">
+            <AuthPanel />
             <ThemeToggle />
             <button
               type="button"
@@ -86,19 +99,36 @@ export default function Dashboard() {
             >
               Home
             </button>
+            <button
+              type="button"
+              onClick={goCompare}
+              aria-pressed={compareActive}
+              className={`rounded-lg border px-3 py-1.5 text-sm font-medium transition ${
+                compareActive
+                  ? 'border-primary bg-primary/10 text-foreground'
+                  : 'border-border bg-card text-muted-foreground hover:border-muted-foreground/40 hover:text-foreground'
+              }`}
+            >
+              Compare
+            </button>
           </div>
+        </div>
+        <div className="mt-3">
+          <ExportMenu ticker={activeTicker || undefined} watchlistTickers={watchlistTickers} />
         </div>
       </header>
 
       <TickerBar />
 
       <main className="mx-auto mt-6 flex max-w-7xl flex-col gap-6">
-        {homeActive ? (
+        {compareActive ? (
+          <CompareView />
+        ) : homeActive ? (
           <HomeOverview />
         ) : activeTicker ? (
           <>
             <StockCard
-              quote={data}
+              quote={liveQuote}
               loading={loading}
               error={error}
               lastUpdated={lastUpdated}
@@ -116,18 +146,23 @@ export default function Dashboard() {
                 <NewsPanel
                   key={`news-${activeTicker}`}
                   ticker={activeTicker}
-                  companyName={data?.companyName}
+                  companyName={liveQuote?.companyName}
                   sentimentByHeadline={sentimentByHeadline}
                 />
               </div>
-              <AIAnalysisPanel
-                key={`ai-${activeTicker}`}
-                ticker={activeTicker}
-                onAnalysis={handleAnalysis}
-                onLoadingChange={setAnalysisLoading}
-              />
+              <div className="space-y-6">
+                <AIAnalysisPanel
+                  key={`ai-${activeTicker}`}
+                  ticker={activeTicker}
+                  onAnalysis={handleAnalysis}
+                  onLoadingChange={setAnalysisLoading}
+                />
+                <EarningsCard ticker={activeTicker} />
+                <PeerComparison ticker={activeTicker} />
+              </div>
             </div>
 
+            <UserAlertsPanel ticker={activeTicker} />
             <AlertsPanel
               key={`alerts-${activeTicker}`}
               ticker={activeTicker}

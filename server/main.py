@@ -6,7 +6,8 @@ from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
 
 from db import init_db
-from routers import analysis, news, stocks, watchlist
+from routers import analysis, auth, news, stocks, tools, user_alerts, watchlist, ws
+from services.scheduler import start_scheduler, stop_scheduler
 
 load_dotenv(Path(__file__).resolve().parent.parent / ".env")
 
@@ -40,6 +41,10 @@ app.include_router(stocks.router, prefix="/api")
 app.include_router(news.router, prefix="/api")
 app.include_router(analysis.router, prefix="/api")
 app.include_router(watchlist.router, prefix="/api")
+app.include_router(auth.router, prefix="/api")
+app.include_router(tools.router, prefix="/api")
+app.include_router(user_alerts.router, prefix="/api")
+app.include_router(ws.router, prefix="/api")
 
 
 @app.on_event("startup")
@@ -47,10 +52,22 @@ async def startup() -> None:
     from db.database import DATABASE_URL
 
     init_db.create_tables()
-    # Helpful when debugging Railway persistence (path only, no secrets).
+    start_scheduler()
     print(f"Vectra DB: {DATABASE_URL}")
+
+
+@app.on_event("shutdown")
+async def shutdown() -> None:
+    stop_scheduler()
 
 
 @app.get("/health")
 async def health() -> dict[str, str]:
-    return {"status": "ok"}
+    from config import settings
+    from db.database import DATABASE_URL
+
+    return {
+        "status": "ok",
+        "version": settings.app_version,
+        "database": "postgresql" if DATABASE_URL.startswith("postgresql") else "sqlite",
+    }

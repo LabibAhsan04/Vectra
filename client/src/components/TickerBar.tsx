@@ -1,11 +1,19 @@
 import { useEffect, useState } from 'react';
 import axios from 'axios';
-import type { StockQuote } from '@/types/stock.types';
+import type { WatchlistSnapshotItem } from '@/types/stock.types';
 import { useStockStore } from '@/store/stockStore';
 import { useWatchlistStore } from '@/store/watchlistStore';
 import { API_BASE_URL } from '@/utils/constants';
 import { formatChangePct } from '@/utils/formatters';
+import { internalCircleLabel } from '@/utils/signalLabels';
 import ManageWatchlistModal from './ManageWatchlistModal';
+
+function formatSignalChange(stamp: string | null): string | null {
+  if (!stamp) return null;
+  const date = new Date(stamp);
+  if (Number.isNaN(date.getTime())) return null;
+  return date.toLocaleString(undefined, { month: 'short', day: 'numeric' });
+}
 
 export default function TickerBar() {
   const selectedView = useStockStore((s) => s.selectedView);
@@ -15,8 +23,8 @@ export default function TickerBar() {
   const hydrated = useWatchlistStore((s) => s.hydrated);
   const fetchWatchlist = useWatchlistStore((s) => s.fetchWatchlist);
 
-  const [quotes, setQuotes] = useState<Record<string, StockQuote | null>>({});
-  const [loadingQuotes, setLoadingQuotes] = useState(false);
+  const [snapshot, setSnapshot] = useState<WatchlistSnapshotItem[]>([]);
+  const [loadingSnapshot, setLoadingSnapshot] = useState(false);
   const [manageOpen, setManageOpen] = useState(false);
 
   useEffect(() => {
@@ -27,36 +35,51 @@ export default function TickerBar() {
 
   useEffect(() => {
     if (!tickers.length) {
-      setQuotes({});
+      setSnapshot([]);
       return;
     }
     let cancelled = false;
-    setLoadingQuotes(true);
-
-    async function load() {
-      const results = await Promise.all(
-        tickers.map(async (ticker) => {
-          try {
-            const { data } = await axios.get<StockQuote>(
-              `${API_BASE_URL}/api/stock/${encodeURIComponent(ticker)}`,
-            );
-            return [ticker, data] as const;
-          } catch {
-            return [ticker, null] as const;
-          }
-        }),
-      );
-      if (!cancelled) {
-        setQuotes(Object.fromEntries(results));
-        setLoadingQuotes(false);
+    setLoadingSnapshot(true);
+    void (async () => {
+      try {
+        const { data } = await axios.get<WatchlistSnapshotItem[]>(
+          `${API_BASE_URL}/api/watchlist/snapshot`,
+          { params: { tickers: tickers.join(',') } },
+        );
+        if (!cancelled) {
+          setSnapshot(data);
+          setLoadingSnapshot(false);
+        }
+      } catch {
+        if (!cancelled) {
+          setSnapshot([]);
+          setLoadingSnapshot(false);
+        }
       }
-    }
-
-    void load();
+    })();
     return () => {
       cancelled = true;
     };
   }, [tickers]);
+
+  useEffect(() => {
+    function onKeyDown(event: KeyboardEvent) {
+      const target = event.target as HTMLElement | null;
+      const typing =
+        target?.tagName === 'INPUT' ||
+        target?.tagName === 'TEXTAREA' ||
+        target?.isContentEditable;
+      if (typing) return;
+      if (event.key === '/') {
+        event.preventDefault();
+        setManageOpen(true);
+      }
+    }
+    window.addEventListener('keydown', onKeyDown);
+    return () => window.removeEventListener('keydown', onKeyDown);
+  }, []);
+
+  const snapshotByTicker = Object.fromEntries(snapshot.map((item) => [item.ticker, item]));
 
   return (
     <>
@@ -79,10 +102,16 @@ export default function TickerBar() {
               )}
 
               {tickers.map((ticker) => {
-                const quote = quotes[ticker];
+                const item = snapshotByTicker[ticker];
+                const quote = item?.quote;
+                const signal = item?.latestSignal;
                 const positive = (quote?.changePct ?? 0) >= 0;
                 const isActive =
                   selectedView === 'ticker' && selectedTicker === ticker;
+                const signalLabel = signal
+                  ? internalCircleLabel(signal.finalLabel, signal.finalScore)
+                  : null;
+                const changedAt = formatSignalChange(item?.signalChangedAt ?? null);
 
                 return (
                   <button
@@ -96,10 +125,17 @@ export default function TickerBar() {
                         : 'border-border bg-card hover:border-muted-foreground/40'
                     }`}
                   >
-                    <div className="text-sm font-semibold text-foreground">
-                      {ticker}
+                    <div className="flex items-center gap-2">
+                      <span className="text-sm font-semibold text-foreground">
+                        {ticker}
+                      </span>
+                      {signalLabel ? (
+                        <span className="rounded bg-muted px-1.5 py-0.5 text-[10px] font-medium text-muted-foreground">
+                          {signalLabel}
+                        </span>
+                      ) : null}
                     </div>
-                    {loadingQuotes && !quote ? (
+                    {loadingSnapshot && !quote ? (
                       <div className="mt-1 h-3 w-12 animate-pulse rounded bg-muted" />
                     ) : (
                       <div
@@ -114,6 +150,11 @@ export default function TickerBar() {
                         {quote ? formatChangePct(quote.changePct) : '—'}
                       </div>
                     )}
+                    {changedAt ? (
+                      <div className="mt-0.5 text-[10px] text-muted-foreground">
+                        Signal {changedAt}
+                      </div>
+                    ) : null}
                   </button>
                 );
               })}
@@ -123,13 +164,14 @@ export default function TickerBar() {
           <button
             type="button"
             onClick={() => setManageOpen(true)}
-            title="Add ticker"
+            title="Add ticker (press /)"
             aria-label="Add ticker"
             className="inline-flex min-h-[58px] w-11 shrink-0 items-center justify-center rounded-lg border border-border bg-card text-xl font-medium text-foreground transition hover:border-muted-foreground/40"
           >
             +
           </button>
         </div>
+        <p className="mt-2 text-[11px] text-muted-foreground">Press / to search tickers</p>
       </div>
 
       <ManageWatchlistModal

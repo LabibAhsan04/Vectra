@@ -20,7 +20,9 @@ from services.database import (
     save_signal,
 )
 from services.market_data import get_price_history, get_stock_quote
+from services.fundamentals_service import get_fundamental_metrics
 from services.news_service import get_company_news
+from services.user_alerts_service import evaluate_user_rules
 
 router = APIRouter(tags=["analysis"])
 
@@ -50,8 +52,12 @@ async def analyze_stock(
             closes = []
             volumes = []
 
+        fundamentals = get_fundamental_metrics(ticker)
+        pe_ratio = quote.peRatio or fundamentals.get("peRatio") or 0.0
         fundamentals_available = bool(
-            quote.marketCap > 0 or (quote.peRatio and quote.peRatio > 0)
+            quote.marketCap > 0
+            or pe_ratio > 0
+            or fundamentals.get("available")
         )
         company_bullish = sum(1 for i in company_news if i.sentiment == "bullish")
         company_bearish = sum(1 for i in company_news if i.sentiment == "bearish")
@@ -61,7 +67,10 @@ async def analyze_stock(
             ticker=ticker,
             price=quote.price,
             change_pct=quote.changePct,
-            pe_ratio=quote.peRatio,
+            pe_ratio=pe_ratio,
+            revenue_growth_yoy=fundamentals.get("revenueGrowthYoY"),
+            profit_margin=fundamentals.get("profitMargin"),
+            roe=fundamentals.get("roe"),
             headlines=[item.headline for item in news],
             company_headlines=[item.headline for item in company_news],
             market_headlines=[item.headline for item in market_news],
@@ -137,6 +146,13 @@ async def analyze_stock(
                 ],
             )
 
+        evaluate_user_rules(
+            db,
+            ticker=ticker,
+            price=quote.price,
+            score=new_score,
+        )
+
         # Drop non-schema field before validation.
         result.pop("marketFlags", None)
         return AIAnalysisResponse.model_validate(result)
@@ -201,6 +217,14 @@ def backtest_ticker(ticker: str, db: Session = Depends(get_db)) -> dict:
         history = get_price_history(symbol, "1Y")
         dates = [p.date for p in history.points]
         closes = [p.close for p in history.points]
+        spy_closes: list[float] = []
+        spy_dates: list[str] = []
+        try:
+            spy_history = get_price_history("SPY", "1Y")
+            spy_dates = [p.date for p in spy_history.points]
+            spy_closes = [p.close for p in spy_history.points]
+        except Exception:
+            pass
     except Exception:
         return {
             "signalsTested": 0,
@@ -211,4 +235,10 @@ def backtest_ticker(ticker: str, db: Session = Depends(get_db)) -> dict:
             ),
             "message": "Price history unavailable for forward-return backtest.",
         }
-    return run_backtest(rows, dates=dates, closes=closes)
+    return run_backtest(
+        rows,
+        dates=dates,
+        closes=closes,
+        benchmark_closes=spy_closes,
+        benchmark_dates=spy_dates,
+    )
