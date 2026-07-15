@@ -1,6 +1,6 @@
 import { create } from 'zustand';
 
-export type SelectedView = 'home' | 'ticker' | 'compare';
+export type SelectedView = 'home' | 'ticker';
 
 interface StockState {
   selectedView: SelectedView;
@@ -8,7 +8,6 @@ interface StockState {
   /** Convenience alias used across ticker-mode components. */
   activeTicker: string;
   goHome: () => void;
-  goCompare: () => void;
   selectTicker: (ticker: string) => void;
   /** @deprecated Prefer selectTicker — kept for older call sites. */
   setActiveTicker: (ticker: string) => void;
@@ -22,13 +21,6 @@ export const useStockStore = create<StockState>((set) => ({
   goHome: () =>
     set({
       selectedView: 'home',
-      selectedTicker: null,
-      activeTicker: '',
-    }),
-
-  goCompare: () =>
-    set({
-      selectedView: 'compare',
       selectedTicker: null,
       activeTicker: '',
     }),

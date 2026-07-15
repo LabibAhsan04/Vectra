@@ -190,24 +190,3 @@ export interface EarningsEvent {
   hour?: string;
   label: string;
 }
-
-export interface CompareRow {
-  ticker: string;
-  companyName: string;
-  price: number;
-  changePct: number;
-  peRatio: number;
-  finalScore: number | null;
-  finalLabel: string | null;
-  rsi: number | null;
-  relativeVolume: number | null;
-}
-
-export interface UserAlertRule {
-  id: number;
-  ticker: string;
-  ruleType: string;
-  threshold: number;
-  active: boolean;
-  createdAt: string;
-}

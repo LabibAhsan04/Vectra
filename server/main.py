@@ -5,28 +5,36 @@ from dotenv import load_dotenv
 from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
 
+from config import is_production, settings
 from db import init_db
-from routers import analysis, auth, news, stocks, tools, user_alerts, watchlist, ws
+from middleware.rate_limit import RateLimitMiddleware
+from routers import analysis, news, stocks, tools, watchlist, ws
 from services.scheduler import start_scheduler, stop_scheduler
 
 load_dotenv(Path(__file__).resolve().parent.parent / ".env")
 
-app = FastAPI(title="Vectra — AI Stock Dashboard", version="0.1.0")
+_prod = is_production()
+
+app = FastAPI(
+    title="Vectra — Stock Signal Dashboard",
+    version=settings.app_version,
+    docs_url=None if _prod else "/docs",
+    redoc_url=None if _prod else "/redoc",
+    openapi_url=None if _prod else "/openapi.json",
+)
 
 _allowed_origins = [
     origin.strip().rstrip("/")
     for origin in os.getenv(
         "ALLOWED_ORIGINS",
-        "http://localhost:3000,http://127.0.0.1:3000",
+        settings.allowed_origins,
     ).split(",")
     if origin.strip()
 ]
 _origin_regex_raw = os.getenv("ALLOWED_ORIGIN_REGEX")
 if _origin_regex_raw is None:
-    # Default: allow Vercel production + preview URLs
     _origin_regex: str | None = r"https://.*\.vercel\.app"
 else:
-    # Empty string disables the regex allowlist
     _origin_regex = _origin_regex_raw.strip() or None
 
 app.add_middleware(
@@ -36,14 +44,13 @@ app.add_middleware(
     allow_methods=["*"],
     allow_headers=["*"],
 )
+app.add_middleware(RateLimitMiddleware, enabled=settings.rate_limit_active())
 
 app.include_router(stocks.router, prefix="/api")
 app.include_router(news.router, prefix="/api")
 app.include_router(analysis.router, prefix="/api")
 app.include_router(watchlist.router, prefix="/api")
-app.include_router(auth.router, prefix="/api")
 app.include_router(tools.router, prefix="/api")
-app.include_router(user_alerts.router, prefix="/api")
 app.include_router(ws.router, prefix="/api")
 
 
@@ -53,7 +60,8 @@ async def startup() -> None:
 
     init_db.create_tables()
     start_scheduler()
-    print(f"Vectra DB: {DATABASE_URL}")
+    if not _prod:
+        print(f"Vectra DB: {DATABASE_URL}")
 
 
 @app.on_event("shutdown")
@@ -63,13 +71,14 @@ async def shutdown() -> None:
 
 @app.get("/health")
 async def health() -> dict[str, str]:
-    from config import settings
     from db.database import DATABASE_URL
 
     db_kind = "postgresql" if DATABASE_URL.startswith("postgresql") else "sqlite"
-    return {
+    payload: dict[str, str] = {
         "status": "ok",
         "version": settings.app_version,
         "database": db_kind,
-        "databasePath": DATABASE_URL.replace("sqlite:///", "") if db_kind == "sqlite" else "",
     }
+    if not _prod and db_kind == "sqlite":
+        payload["databasePath"] = DATABASE_URL.replace("sqlite:///", "")
+    return payload

@@ -19,10 +19,9 @@ from services.database import (
     save_news_items,
     save_signal,
 )
-from services.market_data import get_price_history, get_stock_quote
 from services.fundamentals_service import get_fundamental_metrics
+from services.market_data import get_price_history, get_stock_quote
 from services.news_service import get_company_news
-from services.user_alerts_service import evaluate_user_rules
 
 router = APIRouter(tags=["analysis"])
 
@@ -145,13 +144,6 @@ async def analyze_stock(
                     for item in news
                 ],
             )
-
-        evaluate_user_rules(
-            db,
-            ticker=ticker,
-            price=quote.price,
-            score=new_score,
-        )
 
         # Drop non-schema field before validation.
         result.pop("marketFlags", None)

@@ -6,7 +6,6 @@ from sqlalchemy import text
 
 from models.stock import Base
 from models import signal_history  # noqa: F401 — register tables
-from models import user  # noqa: F401 — register tables
 from db.database import engine
 
 

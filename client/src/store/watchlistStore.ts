@@ -175,6 +175,3 @@ export const useWatchlistStore = create<WatchlistState>((set, get) => ({
     }
   },
 }));
-
-// Clear stale auth token so watchlist always uses the shared server list.
-localStorage.removeItem('vectra-auth-token');

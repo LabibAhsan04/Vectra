@@ -147,43 +147,6 @@ class WatchlistSnapshotItem(BaseModel):
     signalChangedAt: datetime | None = None
 
 
-class AuthRegisterRequest(BaseModel):
-    email: str
-    password: str = Field(min_length=8)
-    name: str = ""
-
-
-class AuthLoginRequest(BaseModel):
-    email: str
-    password: str
-
-
-class AuthUserResponse(BaseModel):
-    id: int
-    email: str
-    name: str | None = None
-
-
-class AuthTokenResponse(BaseModel):
-    token: str
-    user: AuthUserResponse
-
-
-class UserAlertRuleRequest(BaseModel):
-    ticker: str
-    ruleType: str
-    threshold: float
-
-
-class UserAlertRuleResponse(BaseModel):
-    id: int
-    ticker: str
-    ruleType: str
-    threshold: float
-    active: bool
-    createdAt: datetime
-
-
 class PeerRow(BaseModel):
     ticker: str
     companyName: str
@@ -212,22 +175,6 @@ class EarningsEvent(BaseModel):
     revenueEstimate: float | None = None
     hour: str = ""
     label: str
-
-
-class CompareTickerRow(BaseModel):
-    ticker: str
-    companyName: str
-    price: float
-    changePct: float
-    peRatio: float
-    finalScore: int | None = None
-    finalLabel: str | None = None
-    rsi: float | None = None
-    relativeVolume: float | None = None
-
-
-class CompareResponse(BaseModel):
-    tickers: list[CompareTickerRow]
 
 
 class SymbolSearchResult(BaseModel):

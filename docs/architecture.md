@@ -28,7 +28,13 @@ FastAPI API (Railway)
 5. **Scoring** computes a reproducible final score and research label.
 6. **OpenRouter** (optional) explains the structured payload only — it does not invent fundamentals or change the score.
 7. **Database** persists signal snapshots, classified news, and alerts.
-8. **UI** renders Signal Analysis, history, alerts, news sections, and backtesting-lite.
+8. **UI** renders Signal Analysis, history, alerts, news, peer comparison, and backtesting-lite.
+
+## Production safety
+
+- Interactive API docs are disabled on Railway / `ENV=production`.
+- Per-IP rate limiting protects `/api/analyze`, snapshots, and WebSocket routes.
+- All market-data and AI keys remain server-side only.
 
 ## Caching
 

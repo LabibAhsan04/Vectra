@@ -27,10 +27,10 @@ Most stock dashboards either dump raw data or hide the logic behind a black-box 
 ## Features
 
 ### Market & watchlist
-- Live quotes (Finnhub-first) with WebSocket refresh
+- Live quotes (Finnhub-first) with WebSocket refresh (~60s on free tier)
+- Watchlist ticker bar with **BUY / HOLD / SELL** badges (refreshes every minute)
 - Batch watchlist snapshot API — one request for Home + ticker bar
-- Persistent watchlist (SQLite + Railway volume, or PostgreSQL)
-- Optional JWT auth for per-user watchlists
+- Persistent shared watchlist (SQLite + Railway volume, or PostgreSQL)
 
 ### Charts & indicators
 - Price history (1M → 5Y) with MA20, MA50, Bollinger Bands, MACD, volume
@@ -46,13 +46,10 @@ Most stock dashboards either dump raw data or hide the logic behind a black-box 
 ### News & alerts
 - Company vs Market & Sector news with relevance classification
 - System alerts (score changes, MA crosses, volume spikes)
-- Custom user alert rules (price / score thresholds)
 
 ### Research tools
 - Signal history chart + daily auto-snapshots
 - Backtesting-lite with SPY benchmark comparison
-- Compare up to 5 tickers side-by-side
-- Export watchlist / signals CSV, share JSON snapshot
 
 ---
 
@@ -100,7 +97,7 @@ cp .env.example .env
 cp client/.env.example client/.env
 ```
 
-Add your API keys to the **root** `.env` only. Never commit `.env`.
+Add your API keys to the **root** `.env` only. **Never commit `.env`.**
 
 ### 2. Run locally
 
@@ -119,13 +116,14 @@ npm run dev -- --host 127.0.0.1 --port 3000
 
 - API: http://127.0.0.1:8000/health  
 - App: http://127.0.0.1:3000  
+- API docs (dev only): http://127.0.0.1:8000/docs  
 
 ### 3. Tests
 
 ```bash
 cd server && source .venv/bin/activate && pip install -r requirements.txt
 cd .. && pytest
-cd client && npx tsc --noEmit
+cd client && npx tsc -p tsconfig.app.json --noEmit
 ```
 
 ---
@@ -139,9 +137,10 @@ cd client && npx tsc --noEmit
 | `OPENROUTER_API_KEY` | server | Recommended | AI explanations |
 | `OPENROUTER_MODEL` | server | No | Default `openrouter/free` |
 | `ALPHA_VANTAGE_KEY` | server | No | History fallback |
-| `JWT_SECRET` | server | Prod | Change from default in production |
 | `DATABASE_URL` | server | No | Auto-resolves; see below |
 | `ALLOWED_ORIGINS` | server | Prod | Include your Vercel URL |
+| `ALLOWED_ORIGIN_REGEX` | server | Prod | Default allows `*.vercel.app` |
+| `RATE_LIMIT_ENABLED` | server | No | Auto `true` on Railway |
 | `VITE_API_URL` | Vercel | Prod | Railway API URL (no trailing slash) |
 
 **Only `VITE_API_URL` is public** in the browser bundle. All API keys stay server-side.
@@ -163,8 +162,13 @@ cd client && npx tsc --noEmit
 1. Connect GitHub repo, set **Root Directory** = `server`
 2. Add API keys + `ALLOWED_ORIGINS` (your Vercel URL)
 3. Mount a **volume at `/data`** for persistent SQLite
-4. Set `JWT_SECRET` to a long random string
-5. Health check: `/health`
+4. Health check: `/health`
+
+Production defaults (no extra config needed on Railway):
+
+- API docs (`/docs`) **disabled**
+- Rate limiting **enabled** (protects OpenRouter + market-data quotas)
+- Database path hidden from `/health`
 
 ### Frontend — Vercel
 
@@ -178,16 +182,15 @@ cd client && npx tsc --noEmit
 
 | Endpoint | Description |
 |----------|-------------|
-| `GET /api/watchlist/snapshot` | Batch quotes + signals |
+| `GET /api/watchlist/snapshot` | Batch quotes + BUY/HOLD/SELL signals |
 | `POST /api/analyze` | Run signal analysis |
 | `GET /api/peers/{ticker}` | Peer comparison |
 | `GET /api/earnings/{ticker}` | Earnings calendar |
-| `GET /api/compare` | Side-by-side ticker stats |
-| `POST /api/auth/register` | Create account |
-| `GET /api/export/watchlist.csv` | CSV export |
+| `GET /api/signals/{ticker}/history` | Signal history |
+| `GET /api/backtest/{ticker}` | Backtesting-lite |
 | `WS /api/ws/quotes/{ticker}` | Live quote stream |
 
-Full interactive docs: `/docs` when the API is running.
+Interactive docs: `/docs` when running locally (disabled in production).
 
 ---
 
@@ -200,13 +203,19 @@ Full interactive docs: `/docs` when the API is running.
 
 ---
 
+## Security
+
+See [SECURITY.md](SECURITY.md) for vulnerability reporting and deployment checklist.
+
+---
+
 ## Contributing
 
 Issues and PRs welcome. Please do not commit secrets or `.env` files.
 
 1. Fork the repo
 2. Create a feature branch
-3. Run `pytest` and `npx tsc --noEmit`
+3. Run `pytest` and `npx tsc -p tsconfig.app.json --noEmit`
 4. Open a PR with a clear description
 
 ---
