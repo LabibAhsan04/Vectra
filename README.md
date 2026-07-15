@@ -1,5 +1,9 @@
 # Vectra
 
+<p align="center">
+  <img src="client/public/vectra-logo.png" alt="Vectra — Real-time signals" width="320" />
+</p>
+
 **Evidence-based stock signal intelligence** — a full-stack research dashboard that scores momentum, technicals, sentiment, fundamentals, and catalysts, then explains the result with transparent math and an AI layer.
 
 [![Live Demo](https://img.shields.io/badge/demo-vectra--green.vercel.app-22c55e)](https://vectra-green.vercel.app)

@@ -82,12 +82,14 @@ export default function Dashboard() {
       <header className="mb-6">
         <div className="flex flex-wrap items-start justify-between gap-3">
           <div>
-            <h1 className="text-3xl font-bold tracking-tight text-foreground">
-              Vectra
-            </h1>
-            <p className="mt-1 text-sm text-muted-foreground">
-              Evidence-based stock signal intelligence
-            </p>
+            <img
+              src="/vectra-logo.png"
+              alt="Vectra — Real-time signals"
+              className="h-12 w-auto sm:h-14"
+              width={400}
+              height={310}
+            />
+            <p className="sr-only">Evidence-based stock signal intelligence</p>
           </div>
           <div className="flex flex-col items-end gap-1.5">
             <div className="flex flex-wrap items-center gap-2">
