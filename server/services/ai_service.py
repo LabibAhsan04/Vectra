@@ -103,6 +103,9 @@ async def get_ai_analysis(
     fundamentals_available: bool = False,
     closes: Sequence[float] | None = None,
     volumes: Sequence[float] | None = None,
+    company_bullish: int = 0,
+    company_bearish: int = 0,
+    company_neutral: int = 0,
     force: bool = False,
 ) -> dict[str, Any]:
     """Build a transparent research signal and attach an explanation."""
@@ -125,6 +128,10 @@ async def get_ai_analysis(
             company_headlines=company_list,
             market_headlines=market_list,
             fundamentals_available=fundamentals_available,
+            pe_ratio=pe_ratio,
+            company_bullish=company_bullish,
+            company_bearish=company_bearish,
+            company_neutral=company_neutral,
         )
         flags = market_snapshot_flags(closes=closes_f, volumes=volumes_f)
     else:
@@ -136,6 +143,10 @@ async def get_ai_analysis(
             company_headlines=company_list,
             market_headlines=market_list,
             fundamentals_available=fundamentals_available,
+            pe_ratio=pe_ratio,
+            company_bullish=company_bullish,
+            company_bearish=company_bearish,
+            company_neutral=company_neutral,
         )
         flags = {}
 

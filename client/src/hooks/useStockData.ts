@@ -6,6 +6,7 @@ import { formatApiError } from '@/utils/apiError';
 
 interface UseStockDataResult {
   data: StockQuote | null;
+  fetchedAt: string | null;
   loading: boolean;
   error: string | null;
 }
@@ -21,20 +22,21 @@ interface UseStockDataResult {
  */
 export function useStockData(ticker: string): UseStockDataResult {
   const [data, setData] = useState<StockQuote | null>(null);
+  const [fetchedAt, setFetchedAt] = useState<string | null>(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
 
   useEffect(() => {
-    // Bug fix: falsy ticker must clear loading or the skeleton never ends
     if (!ticker) {
       setData(null);
+      setFetchedAt(null);
       setError(null);
       setLoading(false);
       return;
     }
 
-    // Bug fix: reset synchronously before any async work so old quote can't flash
     setData(null);
+    setFetchedAt(null);
     setError(null);
     setLoading(true);
 
@@ -44,7 +46,6 @@ export function useStockData(ticker: string): UseStockDataResult {
     let hasLoadedData = false;
 
     async function fetchQuote() {
-      // Bug fix: skip if a request is already running (prevents out-of-order races)
       if (inFlight) return;
       inFlight = true;
 
@@ -54,20 +55,19 @@ export function useStockData(ticker: string): UseStockDataResult {
         const response = await axios.get<StockQuote>(
           `${API_BASE_URL}/api/stock/${ticker}`,
         );
-        // Bug fix: ignore outdated responses
         if (cancelled || currentRequest !== requestId) return;
         setData(response.data);
+        setFetchedAt(new Date().toISOString());
         setError(null);
         hasLoadedData = true;
       } catch (err) {
         if (cancelled || currentRequest !== requestId) return;
         const message = formatApiError(err, `Failed to load ${ticker}`);
 
-        // Bug fix: only surface error / clear data on first failure.
-        // Later poll failures keep the last good quote and do not toggle loading.
         if (!hasLoadedData) {
           setError(message);
           setData(null);
+          setFetchedAt(null);
         }
       } finally {
         inFlight = false;
@@ -89,5 +89,5 @@ export function useStockData(ticker: string): UseStockDataResult {
     };
   }, [ticker]);
 
-  return { data, loading, error };
+  return { data, fetchedAt, loading, error };
 }

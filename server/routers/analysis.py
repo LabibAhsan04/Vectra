@@ -50,7 +50,12 @@ async def analyze_stock(
             closes = []
             volumes = []
 
-        fundamentals_available = False
+        fundamentals_available = bool(
+            quote.marketCap > 0 or (quote.peRatio and quote.peRatio > 0)
+        )
+        company_bullish = sum(1 for i in company_news if i.sentiment == "bullish")
+        company_bearish = sum(1 for i in company_news if i.sentiment == "bearish")
+        company_neutral = sum(1 for i in company_news if i.sentiment == "neutral")
 
         result = await get_ai_analysis(
             ticker=ticker,
@@ -63,6 +68,9 @@ async def analyze_stock(
             company_news_count=len(company_news),
             market_news_count=len(market_news),
             fundamentals_available=fundamentals_available,
+            company_bullish=company_bullish,
+            company_bearish=company_bearish,
+            company_neutral=company_neutral,
             closes=closes,
             volumes=volumes,
             force=body.force,

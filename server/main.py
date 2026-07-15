@@ -44,7 +44,11 @@ app.include_router(watchlist.router, prefix="/api")
 
 @app.on_event("startup")
 async def startup() -> None:
+    from db.database import DATABASE_URL
+
     init_db.create_tables()
+    # Helpful when debugging Railway persistence (path only, no secrets).
+    print(f"Vectra DB: {DATABASE_URL}")
 
 
 @app.get("/health")

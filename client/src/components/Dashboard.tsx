@@ -19,7 +19,7 @@ export default function Dashboard() {
   const selectedTicker = useStockStore((s) => s.selectedTicker);
   const goHome = useStockStore((s) => s.goHome);
   const activeTicker = selectedTicker ?? '';
-  const { data, loading, error } = useStockData(activeTicker);
+  const { data, loading, error, fetchedAt } = useStockData(activeTicker);
   const [analysis, setAnalysis] = useState<AIAnalysis | null>(null);
   const [analysisLoading, setAnalysisLoading] = useState(false);
   const [historyRefresh, setHistoryRefresh] = useState(0);
@@ -33,17 +33,25 @@ export default function Dashboard() {
   }, [analysis]);
 
   const lastUpdated = useMemo(() => {
-    const stamp = data?.timestamp || analysis?.generatedAt;
-    if (!stamp) return null;
-    const date = new Date(stamp);
+    const stamps = [data?.timestamp, fetchedAt].filter(Boolean) as string[];
+    if (!stamps.length) {
+      const analysisStamp = analysis?.generatedAt;
+      if (!analysisStamp) return null;
+      stamps.push(analysisStamp);
+    }
+    const latest = stamps.reduce((a, b) =>
+      new Date(a).getTime() > new Date(b).getTime() ? a : b,
+    );
+    const date = new Date(latest);
     if (Number.isNaN(date.getTime())) return null;
     return date.toLocaleString(undefined, {
       month: 'short',
       day: 'numeric',
       hour: 'numeric',
       minute: '2-digit',
+      timeZoneName: 'short',
     });
-  }, [data?.timestamp, analysis?.generatedAt]);
+  }, [data?.timestamp, fetchedAt, analysis?.generatedAt]);
 
   function handleAnalysis(next: AIAnalysis | null) {
     setAnalysis(next);
@@ -103,7 +111,15 @@ export default function Dashboard() {
             />
 
             <div className="grid gap-6 lg:grid-cols-[minmax(0,1.15fr)_minmax(0,0.85fr)] lg:items-start">
-              <PriceChart key={activeTicker} ticker={activeTicker} />
+              <div className="space-y-6">
+                <PriceChart key={activeTicker} ticker={activeTicker} />
+                <NewsPanel
+                  key={`news-${activeTicker}`}
+                  ticker={activeTicker}
+                  companyName={data?.companyName}
+                  sentimentByHeadline={sentimentByHeadline}
+                />
+              </div>
               <AIAnalysisPanel
                 key={`ai-${activeTicker}`}
                 ticker={activeTicker}
@@ -111,13 +127,6 @@ export default function Dashboard() {
                 onLoadingChange={setAnalysisLoading}
               />
             </div>
-
-            <NewsPanel
-              key={`news-${activeTicker}`}
-              ticker={activeTicker}
-              companyName={data?.companyName}
-              sentimentByHeadline={sentimentByHeadline}
-            />
 
             <AlertsPanel
               key={`alerts-${activeTicker}`}

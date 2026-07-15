@@ -1,4 +1,4 @@
-"""Market data helpers — Polygon primary, Finnhub/Alpha Vantage fallbacks."""
+"""Market data helpers — Finnhub live quotes, Polygon enrichment/fallback."""
 
 from __future__ import annotations
 
@@ -49,6 +49,43 @@ def _get_finnhub() -> finnhub.Client:
     return _finnhub_client
 
 
+def _finnhub_pe(symbol: str) -> float:
+    try:
+        client = _get_finnhub()
+        payload = client.company_basic_financials(symbol, "all") or {}
+        metric = payload.get("metric") or {}
+        pe = metric.get("peBasicExclExtraTTM") or metric.get("peTTM")
+        if pe is not None and float(pe) > 0:
+            return round(float(pe), 2)
+    except Exception:
+        pass
+    return 0.0
+
+
+def _enrich_quote(symbol: str, quote: StockQuote) -> StockQuote:
+    """Fill gaps (volume, 52W range, P/E) from secondary providers."""
+    updates: dict[str, Any] = {}
+    pe = _finnhub_pe(symbol)
+    if pe > 0 and quote.peRatio <= 0:
+        updates["peRatio"] = pe
+
+    try:
+        poly = _quote_from_polygon(symbol)
+        if quote.volume <= 0 and poly.volume > 0:
+            updates["volume"] = poly.volume
+        if poly.weekHigh52 > 0:
+            updates["weekHigh52"] = poly.weekHigh52
+            updates["weekLow52"] = poly.weekLow52
+        if quote.marketCap <= 0 and poly.marketCap > 0:
+            updates["marketCap"] = poly.marketCap
+    except Exception:
+        pass
+
+    if updates:
+        return quote.model_copy(update=updates)
+    return quote
+
+
 def _quote_from_polygon(symbol: str) -> StockQuote:
     client = _get_polygon()
     details = client.get_ticker_details(symbol)
@@ -82,10 +119,11 @@ def _quote_from_polygon(symbol: str) -> StockQuote:
     lows = [float(b.low) for b in bars if b.low is not None]
 
     ts_ms = getattr(latest, "timestamp", None)
+    timestamp = datetime.now(tz=timezone.utc)
     if isinstance(ts_ms, (int, float)):
-        timestamp = datetime.fromtimestamp(ts_ms / 1000, tz=timezone.utc)
-    else:
-        timestamp = datetime.now(tz=timezone.utc)
+        bar_time = datetime.fromtimestamp(ts_ms / 1000, tz=timezone.utc)
+        if bar_time.date() < date.today():
+            timestamp = bar_time.replace(hour=21, minute=0, second=0, microsecond=0)
 
     return StockQuote(
         ticker=symbol,
@@ -119,6 +157,7 @@ def _quote_from_finnhub(symbol: str) -> StockQuote:
         timestamp = datetime.fromtimestamp(ts, tz=timezone.utc)
 
     market_cap = float(profile.get("marketCapitalization") or 0) * 1_000_000
+    pe = _finnhub_pe(symbol)
 
     return StockQuote(
         ticker=symbol,
@@ -128,7 +167,7 @@ def _quote_from_finnhub(symbol: str) -> StockQuote:
         changePct=round(change_pct, 2),
         volume=0,
         marketCap=market_cap,
-        peRatio=0.0,
+        peRatio=pe,
         weekHigh52=round(float(quote.get("h") or price), 2),
         weekLow52=round(float(quote.get("l") or price), 2),
         timestamp=timestamp,
@@ -136,7 +175,7 @@ def _quote_from_finnhub(symbol: str) -> StockQuote:
 
 
 def get_stock_quote(ticker: str) -> StockQuote:
-    """Return a StockQuote. Prefer Polygon; fall back to Finnhub on errors/rate limits."""
+    """Return a StockQuote. Prefer Finnhub (live); enrich from Polygon; fallback Polygon-only."""
     symbol = ticker.strip().upper()
     if not symbol:
         raise HTTPException(status_code=400, detail="Ticker is required")
@@ -147,33 +186,32 @@ def get_stock_quote(ticker: str) -> StockQuote:
         if datetime.now(tz=timezone.utc) < expires_at:
             return quote
 
-    polygon_error: Exception | None = None
+    finnhub_error: Exception | None = None
     try:
-        quote = _quote_from_polygon(symbol)
+        quote = _enrich_quote(symbol, _quote_from_finnhub(symbol))
         _quote_cache[symbol] = (
             datetime.now(tz=timezone.utc) + timedelta(seconds=_QUOTE_CACHE_SECONDS),
             quote,
         )
         return quote
     except Exception as exc:
-        polygon_error = exc
+        finnhub_error = exc
 
     try:
-        quote = _quote_from_finnhub(symbol)
+        quote = _enrich_quote(symbol, _quote_from_polygon(symbol))
         _quote_cache[symbol] = (
             datetime.now(tz=timezone.utc) + timedelta(seconds=_QUOTE_CACHE_SECONDS),
             quote,
         )
         return quote
-    except Exception as finnhub_error:
-        # Serve last good quote briefly during outages/rate limits.
+    except Exception as polygon_error:
         if cached is not None:
             return cached[1]
         detail = (
             f"Unable to fetch quote for '{symbol}'. "
-            f"Polygon: {polygon_error}; Finnhub: {finnhub_error}"
+            f"Finnhub: {finnhub_error}; Polygon: {polygon_error}"
         )
-        raise HTTPException(status_code=502, detail=detail) from finnhub_error
+        raise HTTPException(status_code=502, detail=detail) from polygon_error
 
 
 _RANGE_DAYS: dict[str, int] = {

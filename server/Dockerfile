@@ -7,6 +7,9 @@ RUN pip install --no-cache-dir -r requirements.txt
 
 COPY . .
 
+# Create /data for Railway persistent volume mounts
+RUN mkdir -p /data
+
 ENV PORT=8000
 
 EXPOSE 8000

@@ -19,7 +19,7 @@ class Settings(BaseSettings):
     anthropic_api_key: str = ""
     openrouter_api_key: str = ""
     openrouter_model: str = "openrouter/free"
-    database_url: str = "sqlite:///./stocks.db"
+    database_url: str = ""  # resolved in db.database.resolve_database_url()
     allowed_origins: str = "http://localhost:3000,http://127.0.0.1:3000"
     cache_ttl_seconds: int = 60
     port: int = 8000

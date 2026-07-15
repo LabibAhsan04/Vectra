@@ -5,7 +5,7 @@ from __future__ import annotations
 from typing import Any, Sequence
 
 from services.indicators import average_volume, rsi, simple_moving_average
-from services.scoring import clamp_score, normalize_factor_scores
+from services.scoring import normalize_factor_scores
 
 
 def _headline_tone(text: str) -> int:
@@ -18,6 +18,16 @@ def _headline_tone(text: str) -> int:
     return score
 
 
+def _pct_change(closes: Sequence[float], days: int) -> float | None:
+    if len(closes) < days + 1:
+        return None
+    start = closes[-(days + 1)]
+    end = closes[-1]
+    if start == 0:
+        return None
+    return (end - start) / start * 100.0
+
+
 def build_factor_scores_from_market(
     *,
     closes: Sequence[float],
@@ -26,6 +36,10 @@ def build_factor_scores_from_market(
     company_headlines: Sequence[str],
     market_headlines: Sequence[str],
     fundamentals_available: bool,
+    pe_ratio: float = 0.0,
+    company_bullish: int = 0,
+    company_bearish: int = 0,
+    company_neutral: int = 0,
 ) -> tuple[dict[str, int], dict[str, list[str]]]:
     """Return (factor_scores, per-factor contribution notes)."""
     notes: dict[str, list[str]] = {
@@ -56,6 +70,23 @@ def build_factor_scores_from_market(
     else:
         notes["momentum"].append("0 daily change is flat")
 
+    trend_5 = _pct_change(closes_f, 5)
+    trend_20 = _pct_change(closes_f, 20)
+    if trend_5 is not None:
+        if trend_5 > 0.5:
+            momentum += 12
+            notes["momentum"].append(f"+12 5-day trend positive ({trend_5:.1f}%)")
+        elif trend_5 < -0.5:
+            momentum -= 10
+            notes["momentum"].append(f"-10 5-day trend negative ({trend_5:.1f}%)")
+    if trend_20 is not None:
+        if trend_20 > 1.0:
+            momentum += 10
+            notes["momentum"].append(f"+10 20-day trend positive ({trend_20:.1f}%)")
+        elif trend_20 < -1.0:
+            momentum -= 8
+            notes["momentum"].append(f"-8 20-day trend negative ({trend_20:.1f}%)")
+
     if ma20 is not None:
         if price > ma20:
             momentum += 20
@@ -65,12 +96,28 @@ def build_factor_scores_from_market(
             notes["momentum"].append("-15 price is below MA20")
 
     if latest_vol is not None and avg_vol and avg_vol > 0:
-        if latest_vol >= avg_vol:
-            momentum += 10
-            notes["momentum"].append("+10 relative volume is above normal")
+        rel = latest_vol / avg_vol
+        if rel >= 1.3:
+            momentum += 15
+            notes["momentum"].append("+15 relative volume elevated (≥1.3× avg)")
+        elif rel >= 1.0:
+            momentum += 8
+            notes["momentum"].append("+8 relative volume above average")
         else:
             momentum -= 5
-            notes["momentum"].append("-5 relative volume is below normal")
+            notes["momentum"].append("-5 relative volume below average")
+
+    if len(closes_f) >= 20:
+        window = closes_f[-20:]
+        lo, hi = min(window), max(window)
+        if hi > lo:
+            position = (price - lo) / (hi - lo)
+            if position >= 0.6:
+                momentum += 8
+                notes["momentum"].append("+8 price in upper 40% of 20-day range")
+            elif position <= 0.4:
+                momentum -= 6
+                notes["momentum"].append("-6 price in lower 40% of 20-day range")
 
     # --- Technical ---
     technical = 50
@@ -100,15 +147,30 @@ def build_factor_scores_from_market(
 
     # --- Sentiment (company news weighted more than market) ---
     sentiment = 50
+    if company_bullish or company_bearish or company_neutral:
+        net = company_bullish - company_bearish
+        if net > 0:
+            sentiment += min(25, 8 * net)
+            notes["sentiment"].append(
+                f"+{min(25, 8 * net)} company news skew bullish ({company_bullish}↑ / {company_bearish}↓)"
+            )
+        elif net < 0:
+            sentiment -= min(25, 8 * abs(net))
+            notes["sentiment"].append(
+                f"-{min(25, 8 * abs(net))} company news skew bearish ({company_bullish}↑ / {company_bearish}↓)"
+            )
+        else:
+            notes["sentiment"].append("0 company news sentiment is balanced")
+
     company_tone = sum(_headline_tone(h) for h in company_headlines)
     market_tone = sum(_headline_tone(h) for h in market_headlines)
     if company_tone > 0:
-        sentiment += min(20, 10 * company_tone)
-        notes["sentiment"].append("+10+ constructive company-news language")
+        sentiment += min(15, 8 * company_tone)
+        notes["sentiment"].append("+8+ constructive company-news language")
     elif company_tone < 0:
-        sentiment -= min(20, 10 * abs(company_tone))
-        notes["sentiment"].append("-10+ cautious company-news language")
-    else:
+        sentiment -= min(15, 8 * abs(company_tone))
+        notes["sentiment"].append("-8+ cautious company-news language")
+    elif not (company_bullish or company_bearish):
         notes["sentiment"].append("0 company-news tone is mixed/neutral")
 
     if market_tone > 0:
@@ -125,7 +187,21 @@ def build_factor_scores_from_market(
     # --- Fundamentals / data quality ---
     if fundamentals_available:
         fundamentals = 55
-        notes["fundamentals"].append("Limited company profile metrics available")
+        notes["fundamentals"].append("Company profile metrics available")
+        if pe_ratio and pe_ratio > 0:
+            if 8 <= pe_ratio <= 30:
+                fundamentals += 12
+                notes["fundamentals"].append(
+                    f"+12 P/E {pe_ratio:.1f} within reasonable range"
+                )
+            elif pe_ratio > 45:
+                fundamentals -= 10
+                notes["fundamentals"].append(f"-10 elevated P/E ({pe_ratio:.1f})")
+            elif pe_ratio < 8:
+                fundamentals += 5
+                notes["fundamentals"].append(
+                    f"+5 low P/E ({pe_ratio:.1f}) — value or distress signal"
+                )
     else:
         fundamentals = 45
         notes["fundamentals"].append(
@@ -162,7 +238,6 @@ def build_factor_scores_from_market(
             "growth": growth,
         }
     )
-    # Keep notes even if clamped.
     return scores, notes
 
 
