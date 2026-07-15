@@ -36,6 +36,6 @@ async def quote_stream(websocket: WebSocket, ticker: str) -> None:
                 )
             except Exception as exc:
                 await websocket.send_text(json.dumps({"error": str(exc)}))
-            await asyncio.sleep(15)
+            await asyncio.sleep(60)
     except WebSocketDisconnect:
         return

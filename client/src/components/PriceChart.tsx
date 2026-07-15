@@ -15,6 +15,7 @@ import {
   YAxis,
 } from 'recharts';
 import type { ChartRange, PriceHistory, PricePoint } from '@/types/stock.types';
+import { useRefreshTick } from '@/hooks/useRefreshTick';
 import { API_BASE_URL } from '@/utils/constants';
 import { formatApiError } from '@/utils/apiError';
 import { formatPrice } from '@/utils/formatters';
@@ -150,6 +151,7 @@ function PriceChartBody({ ticker }: { ticker: string }) {
   // Axis labels follow the range that produced `points`, not a failed selection.
   const [loadedRange, setLoadedRange] = useState<ChartRange>('3M');
   const [reloadKey, setReloadKey] = useState(0);
+  const refreshTick = useRefreshTick([ticker, range]);
   const [points, setPoints] = useState<PricePoint[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
@@ -213,7 +215,7 @@ function PriceChartBody({ ticker }: { ticker: string }) {
     };
     // `points.length` is sampled once per request to keep stale series on range failure.
     // eslint-disable-next-line react-hooks/exhaustive-deps -- intentionally omit points
-  }, [ticker, range, reloadKey]);
+  }, [ticker, range, reloadKey, refreshTick]);
 
   const trendUp = useMemo(() => {
     if (points.length < 2) return true;

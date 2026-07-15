@@ -1,6 +1,7 @@
 import { useEffect, useState } from 'react';
 import axios from 'axios';
 import type { SignalAlert } from '@/types/stock.types';
+import { useRefreshTick } from '@/hooks/useRefreshTick';
 import { API_BASE_URL } from '@/utils/constants';
 import { formatApiError } from '@/utils/apiError';
 
@@ -23,6 +24,7 @@ function formatTime(iso: string): string {
 export default function AlertsPanel({ ticker, refreshKey = 0 }: AlertsPanelProps) {
   const [alerts, setAlerts] = useState<SignalAlert[]>([]);
   const [error, setError] = useState<string | null>(null);
+  const refreshTick = useRefreshTick([ticker]);
 
   useEffect(() => {
     let cancelled = false;
@@ -46,7 +48,7 @@ export default function AlertsPanel({ ticker, refreshKey = 0 }: AlertsPanelProps
     return () => {
       cancelled = true;
     };
-  }, [ticker, refreshKey]);
+  }, [ticker, refreshKey, refreshTick]);
 
   return (
     <section className="rounded-xl border border-border bg-card p-4 sm:p-6">

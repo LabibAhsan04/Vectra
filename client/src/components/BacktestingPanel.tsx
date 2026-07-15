@@ -1,6 +1,7 @@
-import { useEffect, useState } from 'react';
+import { useEffect, useRef, useState } from 'react';
 import axios from 'axios';
 import type { BacktestResult } from '@/types/stock.types';
+import { useRefreshTick } from '@/hooks/useRefreshTick';
 import { API_BASE_URL } from '@/utils/constants';
 import { formatApiError } from '@/utils/apiError';
 
@@ -21,17 +22,24 @@ export default function BacktestingPanel({
   const [result, setResult] = useState<BacktestResult | null>(null);
   const [error, setError] = useState<string | null>(null);
   const [loading, setLoading] = useState(true);
+  const hasResultRef = useRef(false);
+  const refreshTick = useRefreshTick([ticker]);
+
+  useEffect(() => {
+    hasResultRef.current = false;
+  }, [ticker]);
 
   useEffect(() => {
     let cancelled = false;
     async function load() {
-      setLoading(true);
+      if (!hasResultRef.current) setLoading(true);
       try {
         const { data } = await axios.get<BacktestResult>(
           `${API_BASE_URL}/api/backtest/${encodeURIComponent(ticker)}`,
         );
         if (!cancelled) {
           setResult(data);
+          hasResultRef.current = true;
           setError(null);
         }
       } catch (err) {
@@ -47,7 +55,7 @@ export default function BacktestingPanel({
     return () => {
       cancelled = true;
     };
-  }, [ticker, refreshKey]);
+  }, [ticker, refreshKey, refreshTick]);
 
   return (
     <section className="rounded-xl border border-border bg-card p-4 sm:p-6">

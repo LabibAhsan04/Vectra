@@ -1,6 +1,7 @@
-import { useEffect, useMemo, useState } from 'react';
+import { useEffect, useMemo, useRef, useState } from 'react';
 import axios from 'axios';
 import type { NewsItem } from '@/types/stock.types';
+import { useRefreshTick } from '@/hooks/useRefreshTick';
 import { API_BASE_URL } from '@/utils/constants';
 import { formatApiError } from '@/utils/apiError';
 import NewsFeed from './NewsFeed';
@@ -19,14 +20,22 @@ export default function NewsPanel({
   const [items, setItems] = useState<NewsItem[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
+  const hasNewsRef = useRef(false);
+  const refreshTick = useRefreshTick([ticker]);
+
+  useEffect(() => {
+    hasNewsRef.current = false;
+  }, [ticker]);
 
   useEffect(() => {
     let cancelled = false;
     let requestId = 0;
 
-    setItems([]);
-    setError(null);
-    setLoading(true);
+    if (!hasNewsRef.current) {
+      setItems([]);
+      setError(null);
+      setLoading(true);
+    }
 
     async function load() {
       const currentRequest = ++requestId;
@@ -37,6 +46,7 @@ export default function NewsPanel({
         );
         if (cancelled || currentRequest !== requestId) return;
         setItems(data);
+        hasNewsRef.current = true;
         setError(null);
       } catch (err) {
         if (cancelled || currentRequest !== requestId) return;
@@ -62,7 +72,7 @@ export default function NewsPanel({
     return () => {
       cancelled = true;
     };
-  }, [ticker]);
+  }, [ticker, refreshTick]);
 
   const { companyNews, marketNews } = useMemo(() => {
     const company: NewsItem[] = [];

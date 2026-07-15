@@ -1,6 +1,7 @@
-import { useEffect, useState } from 'react';
+import { useEffect, useRef, useState } from 'react';
 import axios from 'axios';
 import type { PeerComparison } from '@/types/stock.types';
+import { useRefreshTick } from '@/hooks/useRefreshTick';
 import { API_BASE_URL } from '@/utils/constants';
 import { formatApiError } from '@/utils/apiError';
 import { formatChangePct, formatMarketCap, formatPrice } from '@/utils/formatters';
@@ -14,10 +15,16 @@ export default function PeerComparison({ ticker }: PeerComparisonProps) {
   const [data, setData] = useState<PeerComparison | null>(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
+  const hasDataRef = useRef(false);
+  const refreshTick = useRefreshTick([ticker]);
+
+  useEffect(() => {
+    hasDataRef.current = false;
+  }, [ticker]);
 
   useEffect(() => {
     let cancelled = false;
-    setLoading(true);
+    if (!hasDataRef.current) setLoading(true);
     void (async () => {
       try {
         const { data: payload } = await axios.get<PeerComparison>(
@@ -25,6 +32,7 @@ export default function PeerComparison({ ticker }: PeerComparisonProps) {
         );
         if (!cancelled) {
           setData(payload);
+          hasDataRef.current = true;
           setError(null);
         }
       } catch (err) {
@@ -39,7 +47,7 @@ export default function PeerComparison({ ticker }: PeerComparisonProps) {
     return () => {
       cancelled = true;
     };
-  }, [ticker]);
+  }, [ticker, refreshTick]);
 
   return (
     <section className="rounded-xl border border-border bg-card p-4 sm:p-6">

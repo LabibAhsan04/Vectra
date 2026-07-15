@@ -1,6 +1,7 @@
-import { useEffect, useState } from 'react';
+import { useEffect, useRef, useState } from 'react';
 import axios from 'axios';
 import type { WatchlistSnapshotItem } from '@/types/stock.types';
+import { useRefreshTick } from '@/hooks/useRefreshTick';
 import { useStockStore } from '@/store/stockStore';
 import { useWatchlistStore } from '@/store/watchlistStore';
 import { API_BASE_URL } from '@/utils/constants';
@@ -26,6 +27,8 @@ export default function TickerBar() {
   const [snapshot, setSnapshot] = useState<WatchlistSnapshotItem[]>([]);
   const [loadingSnapshot, setLoadingSnapshot] = useState(false);
   const [manageOpen, setManageOpen] = useState(false);
+  const hasSnapshotRef = useRef(false);
+  const refreshTick = useRefreshTick([tickers]);
 
   useEffect(() => {
     if (!hydrated) {
@@ -34,12 +37,17 @@ export default function TickerBar() {
   }, [hydrated, fetchWatchlist]);
 
   useEffect(() => {
+    hasSnapshotRef.current = false;
+  }, [tickers]);
+
+  useEffect(() => {
     if (!tickers.length) {
+      hasSnapshotRef.current = false;
       setSnapshot([]);
       return;
     }
     let cancelled = false;
-    setLoadingSnapshot(true);
+    if (!hasSnapshotRef.current) setLoadingSnapshot(true);
     void (async () => {
       try {
         const { data } = await axios.get<WatchlistSnapshotItem[]>(
@@ -48,11 +56,12 @@ export default function TickerBar() {
         );
         if (!cancelled) {
           setSnapshot(data);
+          hasSnapshotRef.current = true;
           setLoadingSnapshot(false);
         }
       } catch {
         if (!cancelled) {
-          setSnapshot([]);
+          if (!hasSnapshotRef.current) setSnapshot([]);
           setLoadingSnapshot(false);
         }
       }
@@ -60,7 +69,7 @@ export default function TickerBar() {
     return () => {
       cancelled = true;
     };
-  }, [tickers]);
+  }, [tickers, refreshTick]);
 
   useEffect(() => {
     function onKeyDown(event: KeyboardEvent) {

@@ -1,6 +1,7 @@
-import { useEffect, useMemo, useState } from 'react';
+import { useEffect, useMemo, useRef, useState } from 'react';
 import axios from 'axios';
 import type { NewsItem, WatchlistSnapshotItem } from '@/types/stock.types';
+import { useRefreshTick } from '@/hooks/useRefreshTick';
 import { API_BASE_URL } from '@/utils/constants';
 import { formatApiError } from '@/utils/apiError';
 import { formatChangePct } from '@/utils/formatters';
@@ -29,14 +30,23 @@ export default function HomeOverview() {
   const [marketError, setMarketError] = useState<string | null>(null);
   const [watchError, setWatchError] = useState<string | null>(null);
   const [newsLoading, setNewsLoading] = useState(true);
+  const hasSnapshotRef = useRef(false);
+  const hasNewsRef = useRef(false);
+  const refreshTick = useRefreshTick([tickers]);
+
+  useEffect(() => {
+    hasSnapshotRef.current = false;
+    hasNewsRef.current = false;
+  }, [tickers]);
 
   useEffect(() => {
     if (!tickers.length) {
+      hasSnapshotRef.current = false;
       setSnapshot([]);
       return;
     }
     let cancelled = false;
-    setLoadingSnapshot(true);
+    if (!hasSnapshotRef.current) setLoadingSnapshot(true);
     void (async () => {
       try {
         const { data } = await axios.get<WatchlistSnapshotItem[]>(
@@ -45,11 +55,12 @@ export default function HomeOverview() {
         );
         if (!cancelled) {
           setSnapshot(data);
+          hasSnapshotRef.current = true;
           setLoadingSnapshot(false);
         }
       } catch {
         if (!cancelled) {
-          setSnapshot([]);
+          if (!hasSnapshotRef.current) setSnapshot([]);
           setLoadingSnapshot(false);
         }
       }
@@ -57,11 +68,11 @@ export default function HomeOverview() {
     return () => {
       cancelled = true;
     };
-  }, [tickers]);
+  }, [tickers, refreshTick]);
 
   useEffect(() => {
     let cancelled = false;
-    setNewsLoading(true);
+    if (!hasNewsRef.current) setNewsLoading(true);
     void (async () => {
       try {
         const { data } = await axios.get<NewsItem[]>(
@@ -70,6 +81,7 @@ export default function HomeOverview() {
         );
         if (!cancelled) {
           setMarketNews(data);
+          hasNewsRef.current = true;
           setMarketError(null);
         }
       } catch (err) {
@@ -113,7 +125,7 @@ export default function HomeOverview() {
     return () => {
       cancelled = true;
     };
-  }, [tickers]);
+  }, [tickers, refreshTick]);
 
   const marketSnapshot = useMemo(() => {
     const rows = snapshot

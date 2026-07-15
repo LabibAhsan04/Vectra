@@ -1,6 +1,7 @@
 import { useEffect, useRef, useState } from 'react';
 import axios from 'axios';
 import type { AIAnalysis } from '@/types/stock.types';
+import { useRefreshTick } from '@/hooks/useRefreshTick';
 import { API_BASE_URL } from '@/utils/constants';
 import { formatApiError } from '@/utils/apiError';
 import {
@@ -55,6 +56,7 @@ export default function AIAnalysisPanel({
   const [error, setError] = useState<string | null>(null);
   const onAnalysisRef = useRef(onAnalysis);
   const requestIdRef = useRef(0);
+  const refreshTick = useRefreshTick([ticker]);
 
   useEffect(() => {
     onAnalysisRef.current = onAnalysis;
@@ -67,14 +69,18 @@ export default function AIAnalysisPanel({
     };
   }, []);
 
-  async function runAnalysis(force = false) {
+  async function runAnalysis(force = false, silent = false) {
     if (!ticker) return;
 
     const requestId = ++requestIdRef.current;
     const hadAnalysis = Boolean(analysis);
-    setLoading(true);
-    setError(null);
-    onLoadingChange?.(true);
+    if (!silent) {
+      setLoading(true);
+      onLoadingChange?.(true);
+    }
+    if (!silent || !hadAnalysis) {
+      setError(null);
+    }
 
     try {
       const { data } = await axios.post<AIAnalysis>(`${API_BASE_URL}/api/analyze`, {
@@ -99,7 +105,7 @@ export default function AIAnalysisPanel({
         onAnalysisRef.current?.(null);
       }
     } finally {
-      if (requestId === requestIdRef.current) {
+      if (requestId === requestIdRef.current && !silent) {
         setLoading(false);
         onLoadingChange?.(false);
       }
@@ -111,6 +117,12 @@ export default function AIAnalysisPanel({
     void runAnalysis(false);
     // eslint-disable-next-line react-hooks/exhaustive-deps -- mount/ticker only
   }, [ticker]);
+
+  useEffect(() => {
+    if (refreshTick === 0) return;
+    void runAnalysis(false, true);
+    // eslint-disable-next-line react-hooks/exhaustive-deps -- minute poll only
+  }, [refreshTick]);
 
   const meta = getSignalMeta(analysis?.signal, analysis?.overallScore);
   const publicBadge = meta.label;

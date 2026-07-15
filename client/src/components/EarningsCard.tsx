@@ -1,6 +1,7 @@
-import { useEffect, useState } from 'react';
+import { useEffect, useRef, useState } from 'react';
 import axios from 'axios';
 import type { EarningsEvent } from '@/types/stock.types';
+import { useRefreshTick } from '@/hooks/useRefreshTick';
 import { API_BASE_URL } from '@/utils/constants';
 import { formatApiError } from '@/utils/apiError';
 
@@ -32,10 +33,16 @@ export default function EarningsCard({ ticker }: EarningsCardProps) {
   const [nextEvent, setNextEvent] = useState<EarningsEvent | null>(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
+  const hasDataRef = useRef(false);
+  const refreshTick = useRefreshTick([ticker]);
+
+  useEffect(() => {
+    hasDataRef.current = false;
+  }, [ticker]);
 
   useEffect(() => {
     let cancelled = false;
-    setLoading(true);
+    if (!hasDataRef.current) setLoading(true);
     void (async () => {
       try {
         const { data } = await axios.get<EarningsEvent[]>(
@@ -43,6 +50,7 @@ export default function EarningsCard({ ticker }: EarningsCardProps) {
         );
         if (!cancelled) {
           setNextEvent(data.length > 0 ? data[0] : null);
+          hasDataRef.current = true;
           setError(null);
         }
       } catch (err) {
@@ -57,7 +65,7 @@ export default function EarningsCard({ ticker }: EarningsCardProps) {
     return () => {
       cancelled = true;
     };
-  }, [ticker]);
+  }, [ticker, refreshTick]);
 
   if (loading) {
     return (

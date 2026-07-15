@@ -1,5 +1,6 @@
 import { useEffect, useMemo, useState } from 'react';
 import axios from 'axios';
+import { useRefreshTick } from '@/hooks/useRefreshTick';
 import {
   CartesianGrid,
   Line,
@@ -25,6 +26,7 @@ export default function SignalHistoryChart({
 }: SignalHistoryChartProps) {
   const [points, setPoints] = useState<SignalHistoryPoint[]>([]);
   const [error, setError] = useState<string | null>(null);
+  const refreshTick = useRefreshTick([ticker]);
 
   useEffect(() => {
     let cancelled = false;
@@ -48,7 +50,7 @@ export default function SignalHistoryChart({
     return () => {
       cancelled = true;
     };
-  }, [ticker, refreshKey]);
+  }, [ticker, refreshKey, refreshTick]);
 
   const rows = useMemo(
     () =>

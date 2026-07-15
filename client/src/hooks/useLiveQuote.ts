@@ -9,7 +9,7 @@ interface LiveQuotePatch {
   timestamp: string;
 }
 
-/** WebSocket-backed live quote updates (server pushes every ~15s). */
+/** WebSocket-backed live quote updates (server pushes every ~60s on free tier). */
 export function useLiveQuote(
   ticker: string,
   base: StockQuote | null,

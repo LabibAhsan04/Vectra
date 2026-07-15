@@ -1,6 +1,7 @@
 import { useEffect, useState } from 'react';
 import axios from 'axios';
 import type { CompareRow } from '@/types/stock.types';
+import { useRefreshTick } from '@/hooks/useRefreshTick';
 import { API_BASE_URL } from '@/utils/constants';
 import { formatApiError } from '@/utils/apiError';
 import { formatChangePct, formatPrice } from '@/utils/formatters';
@@ -13,6 +14,7 @@ export default function CompareView() {
   const [rows, setRows] = useState<CompareRow[]>([]);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
+  const refreshTick = useRefreshTick([selected.join(',')]);
 
   useEffect(() => {
     if (tickers.length >= 2 && selected.length === 0) {
@@ -49,7 +51,7 @@ export default function CompareView() {
     return () => {
       cancelled = true;
     };
-  }, [selected]);
+  }, [selected, refreshTick]);
 
   function toggle(ticker: string) {
     setSelected((prev) => {
