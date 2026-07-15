@@ -9,14 +9,11 @@ import { formatChangePct } from '@/utils/formatters';
 import { getSignalMeta, toneClass } from '@/utils/signalLabels';
 import ManageWatchlistModal from './ManageWatchlistModal';
 
-function formatSignalChange(stamp: string | null): string | null {
-  if (!stamp) return null;
-  const date = new Date(stamp);
-  if (Number.isNaN(date.getTime())) return null;
-  return date.toLocaleString(undefined, { month: 'short', day: 'numeric' });
+interface TickerBarProps {
+  onLastUpdated?: (iso: string) => void;
 }
 
-export default function TickerBar() {
+export default function TickerBar({ onLastUpdated }: TickerBarProps) {
   const selectedView = useStockStore((s) => s.selectedView);
   const selectedTicker = useStockStore((s) => s.selectedTicker);
   const selectTicker = useStockStore((s) => s.selectTicker);
@@ -58,6 +55,7 @@ export default function TickerBar() {
           setSnapshot(data);
           hasSnapshotRef.current = true;
           setLoadingSnapshot(false);
+          onLastUpdated?.(new Date().toISOString());
         }
       } catch {
         if (!cancelled) {
@@ -69,7 +67,7 @@ export default function TickerBar() {
     return () => {
       cancelled = true;
     };
-  }, [tickers, refreshTick]);
+  }, [tickers, refreshTick, onLastUpdated]);
 
   useEffect(() => {
     function onKeyDown(event: KeyboardEvent) {
@@ -121,7 +119,6 @@ export default function TickerBar() {
                   signal?.finalLabel,
                   signal?.finalScore,
                 );
-                const changedAt = formatSignalChange(item?.signalChangedAt ?? null);
 
                 return (
                   <button
@@ -129,7 +126,7 @@ export default function TickerBar() {
                     type="button"
                     onClick={() => selectTicker(ticker)}
                     aria-pressed={isActive}
-                    className={`min-h-[58px] rounded-lg border px-3 py-2 text-left transition ${
+                    className={`min-h-[48px] rounded-lg border px-3 py-2 text-left transition ${
                       isActive
                         ? 'border-primary bg-primary/10'
                         : 'border-border bg-card hover:border-muted-foreground/40'
@@ -164,11 +161,6 @@ export default function TickerBar() {
                         {quote ? formatChangePct(quote.changePct) : '—'}
                       </div>
                     )}
-                    {changedAt ? (
-                      <div className="mt-0.5 text-[10px] text-muted-foreground">
-                        Signal {changedAt}
-                      </div>
-                    ) : null}
                   </button>
                 );
               })}
@@ -180,7 +172,7 @@ export default function TickerBar() {
             onClick={() => setManageOpen(true)}
             title="Add ticker (press /)"
             aria-label="Add ticker"
-            className="inline-flex min-h-[58px] w-11 shrink-0 items-center justify-center rounded-lg border border-border bg-card text-xl font-medium text-foreground transition hover:border-muted-foreground/40"
+            className="inline-flex min-h-[48px] w-11 shrink-0 items-center justify-center rounded-lg border border-border bg-card text-xl font-medium text-foreground transition hover:border-muted-foreground/40"
           >
             +
           </button>

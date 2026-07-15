@@ -9,7 +9,6 @@ import AlertsPanel from './AlertsPanel';
 import SignalHistoryChart from './SignalHistoryChart';
 import BacktestingPanel from './BacktestingPanel';
 import HomeOverview from './HomeOverview';
-import CompareView from './CompareView';
 import PeerComparison from './PeerComparison';
 import EarningsCard from './EarningsCard';
 import ThemeToggle from './ThemeToggle';
@@ -22,13 +21,13 @@ export default function Dashboard() {
   const selectedView = useStockStore((s) => s.selectedView);
   const selectedTicker = useStockStore((s) => s.selectedTicker);
   const goHome = useStockStore((s) => s.goHome);
-  const goCompare = useStockStore((s) => s.goCompare);
   const activeTicker = selectedTicker ?? '';
   const { data, loading, error, fetchedAt } = useStockData(activeTicker);
   const { quote: liveQuote } = useLiveQuote(activeTicker, data);
   const [analysis, setAnalysis] = useState<AIAnalysis | null>(null);
   const [analysisLoading, setAnalysisLoading] = useState(false);
   const [historyRefresh, setHistoryRefresh] = useState(0);
+  const [signalsLastUpdated, setSignalsLastUpdated] = useState<string | null>(null);
 
   const sentimentByHeadline = useMemo(() => {
     const map: Record<string, NewsItem['sentiment']> = {};
@@ -65,7 +64,18 @@ export default function Dashboard() {
   }
 
   const homeActive = selectedView === 'home';
-  const compareActive = selectedView === 'compare';
+
+  const signalsUpdatedLabel = useMemo(() => {
+    if (!signalsLastUpdated) return null;
+    const date = new Date(signalsLastUpdated);
+    if (Number.isNaN(date.getTime())) return null;
+    return date.toLocaleString(undefined, {
+      month: 'short',
+      day: 'numeric',
+      hour: 'numeric',
+      minute: '2-digit',
+    });
+  }, [signalsLastUpdated]);
 
   return (
     <div className="min-h-screen bg-background px-4 py-6 sm:px-6">
@@ -79,42 +89,35 @@ export default function Dashboard() {
               Evidence-based stock signal intelligence
             </p>
           </div>
-          <div className="flex flex-wrap items-center gap-2">
-            <ThemeToggle />
-            <button
-              type="button"
-              onClick={goHome}
-              aria-pressed={homeActive}
-              className={`rounded-lg border px-3 py-1.5 text-sm font-medium transition ${
-                homeActive
-                  ? 'border-primary bg-primary/10 text-foreground'
-                  : 'border-border bg-card text-muted-foreground hover:border-muted-foreground/40 hover:text-foreground'
-              }`}
-            >
-              Home
-            </button>
-            <button
-              type="button"
-              onClick={goCompare}
-              aria-pressed={compareActive}
-              className={`rounded-lg border px-3 py-1.5 text-sm font-medium transition ${
-                compareActive
-                  ? 'border-primary bg-primary/10 text-foreground'
-                  : 'border-border bg-card text-muted-foreground hover:border-muted-foreground/40 hover:text-foreground'
-              }`}
-            >
-              Compare
-            </button>
+          <div className="flex flex-col items-end gap-1.5">
+            <div className="flex flex-wrap items-center gap-2">
+              <ThemeToggle />
+              <button
+                type="button"
+                onClick={goHome}
+                aria-pressed={homeActive}
+                className={`rounded-lg border px-3 py-1.5 text-sm font-medium transition ${
+                  homeActive
+                    ? 'border-primary bg-primary/10 text-foreground'
+                    : 'border-border bg-card text-muted-foreground hover:border-muted-foreground/40 hover:text-foreground'
+                }`}
+              >
+                Home
+              </button>
+            </div>
+            {signalsUpdatedLabel ? (
+              <p className="text-xs text-muted-foreground">
+                Signals updated {signalsUpdatedLabel}
+              </p>
+            ) : null}
           </div>
         </div>
       </header>
 
-      <TickerBar />
+      <TickerBar onLastUpdated={setSignalsLastUpdated} />
 
       <main className="mx-auto mt-6 flex max-w-7xl flex-col gap-6">
-        {compareActive ? (
-          <CompareView />
-        ) : homeActive ? (
+        {homeActive ? (
           <HomeOverview />
         ) : activeTicker ? (
           <>
