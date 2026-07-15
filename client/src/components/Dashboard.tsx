@@ -81,15 +81,22 @@ export default function Dashboard() {
     <div className="min-h-screen bg-background px-4 py-6 sm:px-6">
       <header className="mb-6">
         <div className="flex flex-wrap items-start justify-between gap-3">
-          <div>
+          <div className="flex items-center gap-4">
             <img
               src="/vectra-logo.png"
-              alt="Vectra — Real-time signals"
-              className="h-12 w-auto sm:h-14"
+              alt="Vectra"
+              className="h-12 w-auto shrink-0 sm:h-14"
               width={400}
               height={310}
             />
-            <p className="sr-only">Evidence-based stock signal intelligence</p>
+            <div className="min-w-0">
+              <p className="text-sm font-medium text-foreground sm:text-base">
+                Evidence-based stock signal intelligence
+              </p>
+              <p className="mt-0.5 text-xs text-muted-foreground sm:text-sm">
+                Real-time BUY · HOLD · SELL research signals
+              </p>
+            </div>
           </div>
           <div className="flex flex-col items-end gap-1.5">
             <div className="flex flex-wrap items-center gap-2">
