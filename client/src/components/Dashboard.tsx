@@ -90,7 +90,10 @@ export default function Dashboard() {
               height={310}
             />
             <div className="min-w-0">
-              <p className="text-sm font-medium text-foreground sm:text-base">
+              <h1 className="text-xl font-bold tracking-tight text-foreground sm:text-2xl">
+                Vectra
+              </h1>
+              <p className="mt-0.5 text-sm text-muted-foreground sm:text-base">
                 Evidence-based stock signal intelligence
               </p>
               <p className="mt-0.5 text-xs text-muted-foreground sm:text-sm">
