@@ -79,52 +79,56 @@ export default function Dashboard() {
 
   return (
     <div className="min-h-screen bg-background px-4 py-6 sm:px-6">
-      <header className="relative mb-6">
-        <div className="absolute right-0 top-0 flex flex-col items-end gap-1.5">
-          <div className="flex flex-wrap items-center gap-2">
-            <ThemeToggle />
-            <button
-              type="button"
-              onClick={goHome}
-              aria-pressed={homeActive}
-              className={`rounded-lg border px-3 py-1.5 text-sm font-medium transition ${
-                homeActive
-                  ? 'border-primary bg-primary/10 text-foreground'
-                  : 'border-border bg-card text-muted-foreground hover:border-muted-foreground/40 hover:text-foreground'
-              }`}
+      <header className="mb-5 border-b border-border pb-4">
+        <div className="flex flex-wrap items-center justify-between gap-4">
+          <div className="flex items-center gap-3">
+            <div
+              className="relative h-11 w-11 shrink-0 overflow-hidden rounded-lg border border-border bg-card"
+              aria-hidden
             >
-              Home
-            </button>
+              <img
+                src="/vectra-logo.png"
+                alt=""
+                className="absolute left-1/2 top-0 h-[4.75rem] w-auto max-w-none -translate-x-1/2"
+                width={400}
+                height={310}
+              />
+            </div>
+            <div>
+              <h1 className="text-2xl font-bold tracking-tight text-foreground">
+                Vectra
+              </h1>
+              <p className="text-sm text-muted-foreground">
+                Evidence-based stock signal intelligence
+              </p>
+              <p className="text-xs text-muted-foreground">
+                Real-time BUY · HOLD · SELL research signals
+              </p>
+            </div>
           </div>
-          {signalsUpdatedLabel ? (
-            <p className="text-xs text-muted-foreground">
-              Signals updated {signalsUpdatedLabel}
-            </p>
-          ) : null}
-        </div>
 
-        <div className="flex flex-col items-center px-12 pt-1 text-center sm:px-20">
-          <div
-            className="relative mb-3 h-14 w-14 overflow-hidden rounded-xl border border-border bg-card-secondary/60 shadow-sm sm:h-16 sm:w-16"
-            aria-hidden
-          >
-            <img
-              src="/vectra-logo.png"
-              alt=""
-              className="absolute left-1/2 top-0 h-[6.25rem] w-auto max-w-none -translate-x-1/2 sm:h-[7rem]"
-              width={400}
-              height={310}
-            />
+          <div className="flex flex-col items-end gap-1.5">
+            <div className="flex flex-wrap items-center gap-2">
+              <ThemeToggle />
+              <button
+                type="button"
+                onClick={goHome}
+                aria-pressed={homeActive}
+                className={`rounded-lg border px-3 py-1.5 text-sm font-medium transition ${
+                  homeActive
+                    ? 'border-primary bg-primary/10 text-foreground'
+                    : 'border-border bg-card text-muted-foreground hover:border-muted-foreground/40 hover:text-foreground'
+                }`}
+              >
+                Home
+              </button>
+            </div>
+            {signalsUpdatedLabel ? (
+              <p className="text-xs text-muted-foreground">
+                Signals updated {signalsUpdatedLabel}
+              </p>
+            ) : null}
           </div>
-          <h1 className="text-2xl font-bold tracking-tight text-foreground sm:text-3xl">
-            Vectra
-          </h1>
-          <p className="mt-1 max-w-md text-sm text-muted-foreground sm:text-base">
-            Evidence-based stock signal intelligence
-          </p>
-          <p className="mt-0.5 text-xs text-muted-foreground sm:text-sm">
-            Real-time BUY · HOLD · SELL research signals
-          </p>
         </div>
       </header>
 
