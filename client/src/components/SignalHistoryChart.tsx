@@ -74,6 +74,17 @@ export default function SignalHistoryChart({
     return 'var(--color-neutral)';
   }, [points]);
 
+  const stats = useMemo(() => {
+    if (!points.length) return null;
+    const scores = points.map((p) => p.finalScore);
+    return {
+      latest: points[points.length - 1],
+      count: points.length,
+      high: Math.max(...scores),
+      low: Math.min(...scores),
+    };
+  }, [points]);
+
   return (
     <section className="rounded-xl border border-border bg-card p-4 sm:p-6">
       <div className="mb-3">
@@ -91,11 +102,34 @@ export default function SignalHistoryChart({
 
       {!error && rows.length === 0 ? (
         <p className="text-sm text-muted-foreground">
-          No saved signals yet. Run Signal Analysis to start building history.
+          Signal history will become more useful as Vectra tracks this ticker over time.
         </p>
       ) : null}
 
-      {rows.length > 0 ? (
+      {!error && stats && rows.length > 0 && rows.length < 3 ? (
+        <div className="mb-3 rounded-lg border border-border bg-card-secondary px-3 py-2 text-xs text-muted-foreground">
+          <p>
+            Latest score:{' '}
+            <span className="font-medium text-foreground">
+              {stats.latest.finalScore}
+            </span>
+          </p>
+          <p>
+            Saved signals:{' '}
+            <span className="font-medium text-foreground">{stats.count}</span>
+            {stats.count > 0 ? (
+              <>
+                {' '}
+                · High:{' '}
+                <span className="font-medium text-foreground">{stats.high}</span> · Low:{' '}
+                <span className="font-medium text-foreground">{stats.low}</span>
+              </>
+            ) : null}
+          </p>
+        </div>
+      ) : null}
+
+      {!error && rows.length === 0 ? null : rows.length > 0 ? (
         <>
           <div className="mb-3 flex flex-wrap gap-2">
             {[...rows].reverse().slice(0, 6).map((row) => (
@@ -110,7 +144,7 @@ export default function SignalHistoryChart({
           <div className="h-48 w-full">
             <ResponsiveContainer width="100%" height="100%">
               <LineChart data={rows} margin={{ top: 8, right: 8, left: 0, bottom: 0 }}>
-                <CartesianGrid stroke="var(--color-border)" strokeDasharray="3 3" />
+                <CartesianGrid stroke="var(--vectra-chart-grid)" strokeDasharray="3 3" />
                 <XAxis
                   dataKey="t"
                   tick={{ fill: 'var(--color-muted-foreground)', fontSize: 10 }}

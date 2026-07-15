@@ -4,10 +4,12 @@ import StockCard from './StockCard';
 import PriceChart from './PriceChart';
 import NewsPanel from './NewsPanel';
 import AIAnalysisPanel from './AIAnalysis';
+import QuickStats from './QuickStats';
 import AlertsPanel from './AlertsPanel';
 import SignalHistoryChart from './SignalHistoryChart';
 import BacktestingPanel from './BacktestingPanel';
 import HomeOverview from './HomeOverview';
+import ThemeToggle from './ThemeToggle';
 import { useStockStore } from '@/store/stockStore';
 import { useStockData } from '@/hooks/useStockData';
 import type { AIAnalysis, NewsItem } from '@/types/stock.types';
@@ -19,6 +21,7 @@ export default function Dashboard() {
   const activeTicker = selectedTicker ?? '';
   const { data, loading, error } = useStockData(activeTicker);
   const [analysis, setAnalysis] = useState<AIAnalysis | null>(null);
+  const [analysisLoading, setAnalysisLoading] = useState(false);
   const [historyRefresh, setHistoryRefresh] = useState(0);
 
   const sentimentByHeadline = useMemo(() => {
@@ -58,21 +61,24 @@ export default function Dashboard() {
               Vectra
             </h1>
             <p className="mt-1 text-sm text-muted-foreground">
-              Stock intelligence dashboard
+              Evidence-based stock signal intelligence
             </p>
           </div>
-          <button
-            type="button"
-            onClick={goHome}
-            aria-pressed={homeActive}
-            className={`rounded-lg border px-3 py-1.5 text-sm font-medium transition ${
-              homeActive
-                ? 'border-primary bg-primary/10 text-foreground'
-                : 'border-border bg-card text-muted-foreground hover:border-muted-foreground/40 hover:text-foreground'
-            }`}
-          >
-            Home
-          </button>
+          <div className="flex items-center gap-2">
+            <ThemeToggle />
+            <button
+              type="button"
+              onClick={goHome}
+              aria-pressed={homeActive}
+              className={`rounded-lg border px-3 py-1.5 text-sm font-medium transition ${
+                homeActive
+                  ? 'border-primary bg-primary/10 text-foreground'
+                  : 'border-border bg-card text-muted-foreground hover:border-muted-foreground/40 hover:text-foreground'
+              }`}
+            >
+              Home
+            </button>
+          </div>
         </div>
       </header>
 
@@ -90,25 +96,28 @@ export default function Dashboard() {
               lastUpdated={lastUpdated}
             />
 
-            <div className="grid gap-6 lg:grid-cols-[minmax(0,1.2fr)_minmax(0,0.9fr)] lg:items-start">
-              <div className="space-y-6">
-                <PriceChart key={activeTicker} ticker={activeTicker} />
-                <NewsPanel
-                  key={`news-${activeTicker}`}
-                  ticker={activeTicker}
-                  companyName={data?.companyName}
-                  sentimentByHeadline={sentimentByHeadline}
-                  compact
-                />
-              </div>
-              <div className="min-w-0 lg:sticky lg:top-4">
-                <AIAnalysisPanel
-                  key={`ai-${activeTicker}`}
-                  ticker={activeTicker}
-                  onAnalysis={handleAnalysis}
-                />
-              </div>
+            <QuickStats
+              analysis={analysis}
+              lastUpdated={lastUpdated}
+              loading={analysisLoading && !analysis}
+            />
+
+            <div className="grid gap-6 lg:grid-cols-[minmax(0,1.15fr)_minmax(0,0.85fr)] lg:items-start">
+              <PriceChart key={activeTicker} ticker={activeTicker} />
+              <AIAnalysisPanel
+                key={`ai-${activeTicker}`}
+                ticker={activeTicker}
+                onAnalysis={handleAnalysis}
+                onLoadingChange={setAnalysisLoading}
+              />
             </div>
+
+            <NewsPanel
+              key={`news-${activeTicker}`}
+              ticker={activeTicker}
+              companyName={data?.companyName}
+              sentimentByHeadline={sentimentByHeadline}
+            />
 
             <AlertsPanel
               key={`alerts-${activeTicker}`}
@@ -133,10 +142,7 @@ export default function Dashboard() {
 
       <footer className="mt-10 border-t border-border pt-4 text-center text-xs text-muted-foreground">
         <p>Vectra — Evidence-based stock signal intelligence.</p>
-        <p className="mt-1">
-          For educational and research purposes only. Not financial advice. Does not
-          execute trades.
-        </p>
+        <p className="mt-1">Research use only. Not financial advice.</p>
       </footer>
     </div>
   );

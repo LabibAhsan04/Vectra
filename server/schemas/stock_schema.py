@@ -53,6 +53,13 @@ class FactorScores(BaseModel):
     growth: int = Field(ge=0, le=100)
 
 
+class QuickStats(BaseModel):
+    rsi: float | None = None
+    relativeVolume: float | None = None
+    aboveMa20: bool | None = None
+    aboveMa50: bool | None = None
+
+
 class ScoreBreakdownRow(BaseModel):
     key: str
     label: str
@@ -91,6 +98,11 @@ class AIAnalysisResponse(BaseModel):
     whatCouldChange: list[str] = []
     dataLimitations: list[str] = []
     fundamentalsAvailable: bool = False
+    quickStats: QuickStats | None = None
+    dataQuality: str = "Limited"
+    mainDriver: str = "Momentum"
+    confidence: str = "Medium"
+    riskLevel: str = "Medium"
     sourcesUsed: list[str] = []
     explanationSource: str = "template"
     generatedAt: datetime

@@ -68,7 +68,21 @@ export default function BacktestingPanel({
         </p>
       ) : null}
 
-      {!loading && !error && result ? (
+      {!loading && !error && result && result.signalsTested === 0 ? (
+        <div className="space-y-3">
+          <p className="text-sm text-muted-foreground">
+            Backtesting will populate after Vectra saves enough signal history and forward
+            price data. Signals need at least 1D, 5D, or 20D follow-through data before
+            results can be calculated.
+          </p>
+          <p className="text-xs text-muted-foreground">
+            Backtesting is historical analysis only and does not guarantee future
+            performance.
+          </p>
+        </div>
+      ) : null}
+
+      {!loading && !error && result && result.signalsTested > 0 ? (
         <div className="space-y-4">
           {result.message ? (
             <p className="text-sm text-muted-foreground">{result.message}</p>

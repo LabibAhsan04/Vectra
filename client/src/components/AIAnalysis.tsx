@@ -13,6 +13,7 @@ import ScoreGauge from './ScoreGauge';
 interface AIAnalysisProps {
   ticker: string;
   onAnalysis?: (analysis: AIAnalysis | null) => void;
+  onLoadingChange?: (loading: boolean) => void;
 }
 
 function factorBarColor(value: number, limited?: boolean): string {
@@ -34,10 +35,20 @@ function formatAnalysisTime(iso: string): string {
   });
 }
 
-const SOURCES_LINE =
-  'Sources used: Finnhub price data, company/news feeds, internal signal engine, OpenRouter explanation layer.';
+const SOURCES_FALLBACK = [
+  'Finnhub quote data',
+  'Finnhub candle/price history',
+  'Finnhub company/news feed',
+  'Internal indicator engine',
+  'Internal signal scoring engine',
+  'OpenRouter explanation layer',
+];
 
-export default function AIAnalysisPanel({ ticker, onAnalysis }: AIAnalysisProps) {
+export default function AIAnalysisPanel({
+  ticker,
+  onAnalysis,
+  onLoadingChange,
+}: AIAnalysisProps) {
   const [analysis, setAnalysis] = useState<AIAnalysis | null>(null);
   const [analysisAsOf, setAnalysisAsOf] = useState<string | null>(null);
   const [loading, setLoading] = useState(false);
@@ -63,6 +74,7 @@ export default function AIAnalysisPanel({ ticker, onAnalysis }: AIAnalysisProps)
     const hadAnalysis = Boolean(analysis);
     setLoading(true);
     setError(null);
+    onLoadingChange?.(true);
 
     try {
       const { data } = await axios.post<AIAnalysis>(`${API_BASE_URL}/api/analyze`, {
@@ -89,6 +101,7 @@ export default function AIAnalysisPanel({ ticker, onAnalysis }: AIAnalysisProps)
     } finally {
       if (requestId === requestIdRef.current) {
         setLoading(false);
+        onLoadingChange?.(false);
       }
     }
   }
@@ -119,10 +132,14 @@ export default function AIAnalysisPanel({ ticker, onAnalysis }: AIAnalysisProps)
 
   const whyBullets = breakdown.flatMap((row) => {
     if (row.notes?.length) {
-      return row.notes.slice(0, 2).map((note) => `${row.label}: ${note.replace(/^[\+\-]\d+\s*/, '')}`);
+      return [`${row.label}: ${row.score}/100`, ...row.notes.slice(0, 3).map((note) => `• ${note.replace(/^[\+\-]\d+\s*/, '')}`)];
     }
-    return [];
-  }).slice(0, 8);
+    return [`${row.label}: ${row.score}/100`];
+  }).slice(0, 12);
+
+  const sources = analysis?.sourcesUsed?.length
+    ? analysis.sourcesUsed
+    : SOURCES_FALLBACK;
 
   return (
     <section className="rounded-xl border border-border bg-card p-4 sm:p-6">
@@ -190,12 +207,40 @@ export default function AIAnalysisPanel({ ticker, onAnalysis }: AIAnalysisProps)
         >
           <div className="flex flex-wrap items-start gap-6">
             <ScoreGauge score={analysis.overallScore} signal={analysis.signal} />
-            <div className="min-w-0 flex-1 space-y-2">
+            <div className="min-w-0 flex-1 space-y-3">
               <span
                 className={`inline-block rounded-md px-2.5 py-1 text-sm font-semibold tracking-wide ${toneClass(meta.tone)}`}
               >
                 {publicBadge}
               </span>
+
+              <div className="grid gap-2 rounded-lg border border-border bg-card-secondary p-3 text-xs sm:grid-cols-2">
+                <p>
+                  <span className="text-muted-foreground">Main Driver: </span>
+                  <span className="font-medium text-foreground">
+                    {analysis.mainDriver ?? 'Momentum'}
+                  </span>
+                </p>
+                <p>
+                  <span className="text-muted-foreground">Confidence: </span>
+                  <span className="font-medium text-foreground">
+                    {analysis.confidence ?? 'Medium'}
+                  </span>
+                </p>
+                <p>
+                  <span className="text-muted-foreground">Data Quality: </span>
+                  <span className="font-medium text-foreground">
+                    {analysis.dataQuality ?? 'Limited'}
+                  </span>
+                </p>
+                <p>
+                  <span className="text-muted-foreground">Risk Level: </span>
+                  <span className="font-medium text-foreground">
+                    {analysis.riskLevel ?? 'Medium'}
+                  </span>
+                </p>
+              </div>
+
               {asOfLabel ? (
                 <p className="text-xs text-muted-foreground">
                   Generated {asOfLabel} from data available then.
@@ -274,7 +319,7 @@ export default function AIAnalysisPanel({ ticker, onAnalysis }: AIAnalysisProps)
           </div>
 
           <div>
-            <h4 className="mb-1 text-xs font-semibold uppercase tracking-wide text-muted-foreground">
+            <h4 className="mb-2 text-xs font-semibold uppercase tracking-wide text-muted-foreground">
               Why this score?
             </h4>
             {analysis.scoreFormula ? (
@@ -282,24 +327,48 @@ export default function AIAnalysisPanel({ ticker, onAnalysis }: AIAnalysisProps)
                 {analysis.scoreFormula}
               </p>
             ) : null}
-            <ul className="list-disc space-y-1 pl-4 text-sm text-foreground">
+            <ul className="space-y-2 text-sm text-foreground">
               {(whyBullets.length
                 ? whyBullets
                 : analysis.whyThisSignal ?? [
                     'Composite score blends momentum, technicals, sentiment, growth, and data quality.',
                   ]
               ).map((item, index) => (
-                <li key={`why-${index}`}>{item}</li>
+                <li key={`why-${index}`} className={item.startsWith('•') ? 'ml-4 list-none' : 'font-medium'}>
+                  {item}
+                </li>
               ))}
             </ul>
           </div>
 
-          <p className="text-xs text-muted-foreground">
-            Fundamental data is limited in this version, so the signal relies mainly on
-            price momentum, technical indicators, and recent news.
-          </p>
+          {analysis.dataLimitations?.length ? (
+            <div>
+              <h4 className="mb-1 text-xs font-semibold uppercase tracking-wide text-muted-foreground">
+                Data limitations
+              </h4>
+              <ul className="list-disc space-y-1 pl-4 text-sm text-foreground">
+                {analysis.dataLimitations.map((item, index) => (
+                  <li key={`limit-${index}`}>{item}</li>
+                ))}
+              </ul>
+            </div>
+          ) : (
+            <p className="text-xs text-muted-foreground">
+              Fundamental data is limited in this version, so the signal relies mainly on
+              price momentum, technical indicators, and recent news.
+            </p>
+          )}
 
-          <p className="text-xs text-muted-foreground">{SOURCES_LINE}</p>
+          <div>
+            <h4 className="mb-1 text-xs font-semibold uppercase tracking-wide text-muted-foreground">
+              Sources used
+            </h4>
+            <ul className="list-disc space-y-0.5 pl-4 text-xs text-muted-foreground">
+              {sources.map((source) => (
+                <li key={source}>{source}</li>
+              ))}
+            </ul>
+          </div>
 
           <p className="border-t border-border pt-3 text-xs leading-relaxed text-muted-foreground">
             Vectra provides research signals based on market data, technical indicators,

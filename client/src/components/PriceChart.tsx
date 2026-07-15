@@ -324,15 +324,15 @@ function PriceChartBody({ ticker }: { ticker: string }) {
                   <stop offset="100%" stopColor={stroke} stopOpacity={0} />
                 </linearGradient>
               </defs>
-              <CartesianGrid stroke="var(--color-border)" strokeDasharray="3 3" />
+              <CartesianGrid stroke="var(--vectra-chart-grid)" strokeDasharray="3 3" />
               <XAxis
                 dataKey="date"
                 tickFormatter={(value: string) =>
                   formatAxisDate(value, loadedRange)
                 }
                 minTickGap={28}
-                tick={{ fill: 'var(--color-muted-foreground)', fontSize: 11 }}
-                axisLine={{ stroke: 'var(--color-border)' }}
+                tick={{ fill: 'var(--vectra-muted-text)', fontSize: 11 }}
+                axisLine={{ stroke: 'var(--vectra-border)' }}
                 tickLine={false}
               />
               <YAxis
@@ -343,7 +343,7 @@ function PriceChartBody({ ticker }: { ticker: string }) {
                     ? `$${(value / 1000).toFixed(1)}k`
                     : `$${value.toFixed(0)}`
                 }
-                tick={{ fill: 'var(--color-muted-foreground)', fontSize: 11 }}
+                tick={{ fill: 'var(--vectra-muted-text)', fontSize: 11 }}
                 axisLine={false}
                 tickLine={false}
               />
@@ -351,7 +351,7 @@ function PriceChartBody({ ticker }: { ticker: string }) {
               <Legend
                 verticalAlign="top"
                 height={24}
-                wrapperStyle={{ fontSize: 11, color: 'var(--color-muted-foreground)' }}
+                wrapperStyle={{ fontSize: 11, color: 'var(--vectra-muted-text)' }}
               />
               <Area
                 type="monotone"

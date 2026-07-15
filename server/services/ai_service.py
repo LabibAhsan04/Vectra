@@ -25,16 +25,68 @@ from services.signal_engine import build_factor_scores_from_market, market_snaps
 
 def _sources_used(*, used_openrouter: bool, fundamentals_available: bool) -> list[str]:
     sources = [
-        "Finnhub price data",
-        "company/news feeds",
-        "internal signal engine",
-        "OpenRouter explanation layer",
+        "Finnhub quote data",
+        "Finnhub candle/price history",
+        "Finnhub company/news feed",
+        "Internal indicator engine",
+        "Internal signal scoring engine",
     ]
-    if not used_openrouter:
-        sources[-1] = "OpenRouter explanation layer (template fallback)"
+    if used_openrouter:
+        sources.append("OpenRouter explanation layer")
+    else:
+        sources.append("OpenRouter explanation layer (template fallback)")
     if fundamentals_available:
-        sources.insert(2, "limited company profile metrics")
+        sources.insert(3, "Limited company profile metrics")
     return sources
+
+
+def _data_quality_label(
+    *,
+    fundamentals_available: bool,
+    company_news_count: int,
+    has_history: bool,
+) -> str:
+    if fundamentals_available and company_news_count > 0 and has_history:
+        return "Strong"
+    if has_history and company_news_count > 0:
+        return "Moderate"
+    return "Limited"
+
+
+def _main_driver(factor_scores: dict[str, int]) -> str:
+    labels = {
+        "momentum": "Momentum",
+        "technical": "Technical",
+        "sentiment": "Sentiment",
+        "fundamentals": "Fundamentals",
+        "growth": "Growth/Catalysts",
+    }
+    best = max(factor_scores, key=lambda k: factor_scores.get(k, 0))
+    return labels.get(best, "Momentum")
+
+
+def _confidence_label(data_quality: str, overall: int) -> str:
+    spread = abs(overall - 50)
+    if data_quality == "Strong" and spread >= 20:
+        return "High"
+    if data_quality == "Limited" or spread < 10:
+        return "Low"
+    return "Medium"
+
+
+def _risk_level(data_quality: str, overall: int) -> str:
+    if data_quality == "Limited" or overall <= 40 or overall >= 75:
+        return "Medium" if 35 < overall < 80 else "High"
+    return "Low" if 50 <= overall <= 70 else "Medium"
+
+
+def _build_quick_stats(flags: dict[str, Any]) -> dict[str, Any]:
+    return {
+        "rsi": flags.get("rsi"),
+        "relativeVolume": flags.get("relativeVolume"),
+        "aboveMa20": flags.get("aboveMa20"),
+        "aboveMa50": flags.get("aboveMa50"),
+    }
 
 
 async def get_ai_analysis(
@@ -134,6 +186,11 @@ async def get_ai_analysis(
         fundamentals_available=fundamentals_available,
         used_template=not used_openrouter,
     )
+    data_quality = _data_quality_label(
+        fundamentals_available=fundamentals_available,
+        company_news_count=company_news_count or len(company_list),
+        has_history=bool(closes_f),
+    )
 
     return {
         "ticker": symbol,
@@ -159,6 +216,11 @@ async def get_ai_analysis(
         ),
         "dataLimitations": data_limits,
         "fundamentalsAvailable": fundamentals_available,
+        "quickStats": _build_quick_stats(flags),
+        "dataQuality": data_quality,
+        "mainDriver": _main_driver(factor_scores),
+        "confidence": _confidence_label(data_quality, overall),
+        "riskLevel": _risk_level(data_quality, overall),
         "sourcesUsed": _sources_used(
             used_openrouter=used_openrouter,
             fundamentals_available=fundamentals_available,

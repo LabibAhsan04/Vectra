@@ -98,6 +98,16 @@ export interface AIAnalysis {
   whatCouldChange?: string[];
   dataLimitations?: string[];
   fundamentalsAvailable?: boolean;
+  quickStats?: {
+    rsi?: number | null;
+    relativeVolume?: number | null;
+    aboveMa20?: boolean | null;
+    aboveMa50?: boolean | null;
+  };
+  dataQuality?: string;
+  mainDriver?: string;
+  confidence?: string;
+  riskLevel?: string;
   sourcesUsed?: string[];
   explanationSource?: 'openrouter' | 'template' | 'cache' | string;
   generatedAt: string;

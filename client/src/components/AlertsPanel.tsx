@@ -60,8 +60,8 @@ export default function AlertsPanel({ ticker, refreshKey = 0 }: AlertsPanelProps
       ) : null}
       {!error && alerts.length === 0 ? (
         <p className="text-sm text-muted-foreground">
-          No signal alerts yet for {ticker}. Alerts appear when the label or score
-          moves meaningfully.
+          No signal alerts yet. Alerts appear when the signal label, score, momentum,
+          or sentiment changes meaningfully.
         </p>
       ) : null}
       {alerts.length > 0 ? (

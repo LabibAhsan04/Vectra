@@ -178,12 +178,16 @@ def market_snapshot_flags(
     ma50 = simple_moving_average(closes_f, 50)
     avg_vol = average_volume(vols_f, 20)
     latest_vol = vols_f[-1] if vols_f else None
+    rel_vol = None
+    if latest_vol is not None and avg_vol and avg_vol > 0:
+        rel_vol = round(latest_vol / avg_vol, 2)
     return {
         "price": price,
         "ma20": ma20,
         "ma50": ma50,
         "avgVolume20": avg_vol,
         "latestVolume": latest_vol,
+        "relativeVolume": rel_vol,
         "volumeSpike": bool(
             latest_vol is not None and avg_vol and latest_vol >= 2 * avg_vol
         ),
