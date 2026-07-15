@@ -234,7 +234,6 @@ function PriceChartBody({ ticker }: { ticker: string }) {
   const showMa20 = hasMa20 && showMa20Toggle;
   const showMa50 = hasMa50 && showMa50Toggle;
   const showBb = hasBb && showBbToggle;
-  const showMacd = hasMacd && showMacdToggle;
 
   return (
     <section className="rounded-xl border border-border bg-card p-4 sm:p-6">

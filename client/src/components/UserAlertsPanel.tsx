@@ -1,4 +1,4 @@
-import { FormEvent, useEffect, useState } from 'react';
+import { type FormEvent, useEffect, useState } from 'react';
 import axios from 'axios';
 import type { UserAlertRule } from '@/types/stock.types';
 import { API_BASE_URL } from '@/utils/constants';
