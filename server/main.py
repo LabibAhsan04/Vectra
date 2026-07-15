@@ -66,8 +66,10 @@ async def health() -> dict[str, str]:
     from config import settings
     from db.database import DATABASE_URL
 
+    db_kind = "postgresql" if DATABASE_URL.startswith("postgresql") else "sqlite"
     return {
         "status": "ok",
         "version": settings.app_version,
-        "database": "postgresql" if DATABASE_URL.startswith("postgresql") else "sqlite",
+        "database": db_kind,
+        "databasePath": DATABASE_URL.replace("sqlite:///", "") if db_kind == "sqlite" else "",
     }

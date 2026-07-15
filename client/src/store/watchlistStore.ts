@@ -3,6 +3,8 @@ import axios from 'axios';
 import { API_BASE_URL, WATCHLIST_LIMIT } from '@/utils/constants';
 import { formatApiError } from '@/utils/apiError';
 
+const WATCHLIST_STORAGE_KEY = 'vectra-watchlist-tickers';
+
 export interface WatchlistEntry {
   ticker: string;
   companyName?: string | null;
@@ -35,6 +37,22 @@ interface WatchlistState {
   searchSymbols: (query: string) => Promise<SymbolSearchHit[]>;
 }
 
+function readLocalTickers(): string[] {
+  try {
+    const raw = localStorage.getItem(WATCHLIST_STORAGE_KEY);
+    if (!raw) return [];
+    const parsed = JSON.parse(raw) as unknown;
+    if (!Array.isArray(parsed)) return [];
+    return parsed.filter((t): t is string => typeof t === 'string');
+  } catch {
+    return [];
+  }
+}
+
+function writeLocalTickers(tickers: string[]) {
+  localStorage.setItem(WATCHLIST_STORAGE_KEY, JSON.stringify(tickers));
+}
+
 export const useWatchlistStore = create<WatchlistState>((set, get) => ({
   entries: [],
   tickers: [],
@@ -48,15 +66,20 @@ export const useWatchlistStore = create<WatchlistState>((set, get) => ({
       const { data } = await axios.get<WatchlistEntry[]>(
         `${API_BASE_URL}/api/watchlist`,
       );
+      const tickers = data.map((item) => item.ticker);
+      writeLocalTickers(tickers);
       set({
         entries: data,
-        tickers: data.map((item) => item.ticker),
+        tickers,
         loading: false,
         hydrated: true,
         error: null,
       });
     } catch (err) {
+      const cached = readLocalTickers();
       set({
+        entries: cached.map((ticker) => ({ ticker, addedAt: new Date().toISOString() })),
+        tickers: cached,
         loading: false,
         hydrated: true,
         error: formatApiError(err, 'Failed to load watchlist'),
@@ -94,11 +117,9 @@ export const useWatchlistStore = create<WatchlistState>((set, get) => ({
       set((state) => {
         if (state.tickers.includes(data.ticker)) return state;
         const entries = [...state.entries, data];
-        return {
-          entries,
-          tickers: entries.map((e) => e.ticker),
-          error: null,
-        };
+        const tickers = entries.map((e) => e.ticker);
+        writeLocalTickers(tickers);
+        return { entries, tickers, error: null };
       });
     } catch (err) {
       set({
@@ -116,10 +137,12 @@ export const useWatchlistStore = create<WatchlistState>((set, get) => ({
     set({ error: null });
     const previousEntries = get().entries;
     const previousTickers = get().tickers;
+    const nextTickers = previousTickers.filter((t) => t !== symbol);
     set({
       entries: previousEntries.filter((e) => e.ticker !== symbol),
-      tickers: previousTickers.filter((t) => t !== symbol),
+      tickers: nextTickers,
     });
+    writeLocalTickers(nextTickers);
     try {
       await axios.delete(
         `${API_BASE_URL}/api/watchlist/${encodeURIComponent(symbol)}`,
@@ -130,6 +153,7 @@ export const useWatchlistStore = create<WatchlistState>((set, get) => ({
         tickers: previousTickers,
         error: formatApiError(err, `Failed to remove ${symbol}`),
       });
+      writeLocalTickers(previousTickers);
       throw err;
     }
   },
@@ -151,3 +175,6 @@ export const useWatchlistStore = create<WatchlistState>((set, get) => ({
     }
   },
 }));
+
+// Clear stale auth token so watchlist always uses the shared server list.
+localStorage.removeItem('vectra-auth-token');

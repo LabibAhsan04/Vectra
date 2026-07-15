@@ -8,6 +8,21 @@ interface StockCardProps {
   lastUpdated?: string | null;
 }
 
+function Stat({ label, value, tone }: { label: string; value: string; tone?: 'up' | 'down' }) {
+  return (
+    <div className="min-w-0">
+      <dt className="text-[10px] uppercase tracking-wide text-muted-foreground">{label}</dt>
+      <dd
+        className={`truncate text-sm font-medium tabular-nums ${
+          tone === 'up' ? 'text-bullish' : tone === 'down' ? 'text-bearish' : 'text-foreground'
+        }`}
+      >
+        {value}
+      </dd>
+    </div>
+  );
+}
+
 export default function StockCard({
   quote,
   loading,
@@ -17,20 +32,20 @@ export default function StockCard({
   if (loading) {
     return (
       <div
-        className="animate-pulse rounded-xl border border-border bg-card p-4 sm:p-6"
+        className="animate-pulse rounded-xl border border-border bg-card px-4 py-3"
         aria-busy="true"
         aria-label="Loading quote"
       >
-        <div className="mb-4 h-4 w-24 rounded bg-muted" />
-        <div className="mb-2 h-8 w-28 rounded bg-muted" />
-        <div className="mb-6 h-10 w-40 rounded bg-muted" />
-        <div className="grid grid-cols-2 gap-4 sm:grid-cols-3">
-          {Array.from({ length: 5 }).map((_, i) => (
-            <div key={i} className="space-y-2">
-              <div className="h-3 w-14 rounded bg-muted" />
-              <div className="h-4 w-20 rounded bg-muted" />
-            </div>
-          ))}
+        <div className="flex items-center justify-between gap-4">
+          <div className="space-y-2">
+            <div className="h-3 w-20 rounded bg-muted" />
+            <div className="h-7 w-32 rounded bg-muted" />
+          </div>
+          <div className="hidden h-8 flex-1 gap-6 sm:flex">
+            {Array.from({ length: 5 }).map((_, i) => (
+              <div key={i} className="h-8 w-16 rounded bg-muted" />
+            ))}
+          </div>
         </div>
       </div>
     );
@@ -39,7 +54,7 @@ export default function StockCard({
   if (error) {
     return (
       <div
-        className="rounded-xl border border-bearish/40 bg-card p-4 text-sm text-bearish sm:p-6"
+        className="rounded-xl border border-bearish/40 bg-card px-4 py-3 text-sm text-bearish"
         role="alert"
       >
         {error}
@@ -49,7 +64,7 @@ export default function StockCard({
 
   if (!quote) {
     return (
-      <div className="rounded-xl border border-border bg-card p-4 text-sm text-muted-foreground sm:p-6">
+      <div className="rounded-xl border border-border bg-card px-4 py-3 text-sm text-muted-foreground">
         Select a ticker to view quote details.
       </div>
     );
@@ -58,76 +73,56 @@ export default function StockCard({
   const positive = quote.changePct >= 0;
 
   return (
-    <article className="rounded-xl border border-border bg-card p-4 sm:p-6">
-      <div className="mb-1 text-sm text-muted-foreground">{quote.companyName}</div>
-      <div className="mb-4 flex items-baseline gap-3">
-        <h2 className="text-2xl font-semibold tracking-wide text-foreground">
-          {quote.ticker}
-        </h2>
-        <span
-          className={`rounded-md px-2 py-0.5 text-sm font-medium ${
-            positive
-              ? 'bg-bullish/15 text-bullish'
-              : 'bg-bearish/15 text-bearish'
-          }`}
-        >
-          {formatChangePct(quote.changePct)}
-        </span>
+    <article className="rounded-xl border border-border bg-card px-4 py-3">
+      <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
+        {/* Left: identity + price */}
+        <div className="min-w-0 shrink-0">
+          <p className="truncate text-xs text-muted-foreground">{quote.companyName}</p>
+          <div className="mt-0.5 flex flex-wrap items-baseline gap-x-2 gap-y-1">
+            <h2 className="text-xl font-semibold tracking-wide text-foreground">
+              {quote.ticker}
+            </h2>
+            <span className="text-2xl font-semibold tabular-nums text-foreground">
+              {formatPrice(quote.price)}
+            </span>
+            <span
+              className={`rounded-md px-1.5 py-0.5 text-xs font-medium ${
+                positive ? 'bg-bullish/15 text-bullish' : 'bg-bearish/15 text-bearish'
+              }`}
+            >
+              {formatChangePct(quote.changePct)}
+            </span>
+          </div>
+        </div>
+
+        {/* Right: compact stats row */}
+        <dl className="grid grid-cols-3 gap-x-4 gap-y-2 sm:flex sm:flex-wrap sm:items-end sm:justify-end sm:gap-x-5 sm:gap-y-1">
+          <Stat
+            label="Change"
+            value={`${positive ? '+' : ''}${formatPrice(quote.change)}`}
+            tone={positive ? 'up' : 'down'}
+          />
+          <Stat
+            label="Volume"
+            value={Number.isFinite(quote.volume) ? quote.volume.toLocaleString() : '—'}
+          />
+          <Stat
+            label="Mkt Cap"
+            value={Number.isFinite(quote.marketCap) ? formatMarketCap(quote.marketCap) : '—'}
+          />
+          <Stat
+            label="52W High"
+            value={Number.isFinite(quote.weekHigh52) ? formatPrice(quote.weekHigh52) : '—'}
+          />
+          <Stat
+            label="52W Low"
+            value={Number.isFinite(quote.weekLow52) ? formatPrice(quote.weekLow52) : '—'}
+          />
+        </dl>
       </div>
 
-      <p className="mb-6 text-4xl font-semibold tabular-nums text-foreground">
-        {formatPrice(quote.price)}
-      </p>
-
-      <dl className="grid grid-cols-2 gap-4 text-sm sm:grid-cols-3">
-        <div>
-          <dt className="text-muted-foreground">Change</dt>
-          <dd
-            className={`font-medium tabular-nums ${
-              positive ? 'text-bullish' : 'text-bearish'
-            }`}
-          >
-            {positive ? '+' : ''}
-            {formatPrice(quote.change)}
-          </dd>
-        </div>
-        <div>
-          <dt className="text-muted-foreground">Volume</dt>
-          <dd className="font-medium tabular-nums text-foreground">
-            {Number.isFinite(quote.volume)
-              ? quote.volume.toLocaleString()
-              : '—'}
-          </dd>
-        </div>
-        <div>
-          <dt className="text-muted-foreground">Market Cap</dt>
-          <dd className="font-medium tabular-nums text-foreground">
-            {Number.isFinite(quote.marketCap)
-              ? formatMarketCap(quote.marketCap)
-              : '—'}
-          </dd>
-        </div>
-        <div>
-          <dt className="text-muted-foreground">52W High</dt>
-          <dd className="font-medium tabular-nums text-foreground">
-            {Number.isFinite(quote.weekHigh52)
-              ? formatPrice(quote.weekHigh52)
-              : '—'}
-          </dd>
-        </div>
-        <div>
-          <dt className="text-muted-foreground">52W Low</dt>
-          <dd className="font-medium tabular-nums text-foreground">
-            {Number.isFinite(quote.weekLow52)
-              ? formatPrice(quote.weekLow52)
-              : '—'}
-          </dd>
-        </div>
-      </dl>
       {lastUpdated ? (
-        <p className="mt-4 text-xs text-muted-foreground">
-          Last updated: {lastUpdated}
-        </p>
+        <p className="mt-2 text-[11px] text-muted-foreground">Updated {lastUpdated}</p>
       ) : null}
     </article>
   );

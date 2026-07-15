@@ -12,12 +12,8 @@ import HomeOverview from './HomeOverview';
 import CompareView from './CompareView';
 import PeerComparison from './PeerComparison';
 import EarningsCard from './EarningsCard';
-import UserAlertsPanel from './UserAlertsPanel';
-import ExportMenu from './ExportMenu';
-import AuthPanel from './AuthPanel';
 import ThemeToggle from './ThemeToggle';
 import { useStockStore } from '@/store/stockStore';
-import { useWatchlistStore } from '@/store/watchlistStore';
 import { useStockData } from '@/hooks/useStockData';
 import { useLiveQuote } from '@/hooks/useLiveQuote';
 import type { AIAnalysis, NewsItem } from '@/types/stock.types';
@@ -28,7 +24,6 @@ export default function Dashboard() {
   const goHome = useStockStore((s) => s.goHome);
   const goCompare = useStockStore((s) => s.goCompare);
   const activeTicker = selectedTicker ?? '';
-  const watchlistTickers = useWatchlistStore((s) => s.tickers);
   const { data, loading, error, fetchedAt } = useStockData(activeTicker);
   const { quote: liveQuote } = useLiveQuote(activeTicker, data);
   const [analysis, setAnalysis] = useState<AIAnalysis | null>(null);
@@ -85,7 +80,6 @@ export default function Dashboard() {
             </p>
           </div>
           <div className="flex flex-wrap items-center gap-2">
-            <AuthPanel />
             <ThemeToggle />
             <button
               type="button"
@@ -112,9 +106,6 @@ export default function Dashboard() {
               Compare
             </button>
           </div>
-        </div>
-        <div className="mt-3">
-          <ExportMenu ticker={activeTicker || undefined} watchlistTickers={watchlistTickers} />
         </div>
       </header>
 
@@ -162,7 +153,6 @@ export default function Dashboard() {
               </div>
             </div>
 
-            <UserAlertsPanel ticker={activeTicker} />
             <AlertsPanel
               key={`alerts-${activeTicker}`}
               ticker={activeTicker}
