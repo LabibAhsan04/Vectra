@@ -4,6 +4,8 @@ from pathlib import Path
 from dotenv import load_dotenv
 from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
+from fastapi.responses import FileResponse
+from fastapi.staticfiles import StaticFiles
 
 from config import is_production, settings
 from db import init_db
@@ -14,6 +16,7 @@ from services.scheduler import start_scheduler, stop_scheduler
 load_dotenv(Path(__file__).resolve().parent.parent / ".env")
 
 _prod = is_production()
+STATIC_DIR = Path(__file__).resolve().parent / "static"
 
 app = FastAPI(
     title="Vectra — Stock Signal Dashboard",
@@ -82,3 +85,32 @@ async def health() -> dict[str, str]:
     if not _prod and db_kind == "sqlite":
         payload["databasePath"] = DATABASE_URL.replace("sqlite:///", "")
     return payload
+
+
+def _mount_spa() -> None:
+    """Serve the Vite build from ./static when present (Docker single-container)."""
+    if not STATIC_DIR.is_dir() or not (STATIC_DIR / "index.html").is_file():
+        return
+
+    assets_dir = STATIC_DIR / "assets"
+    if assets_dir.is_dir():
+        app.mount("/assets", StaticFiles(directory=assets_dir), name="assets")
+
+    @app.get("/")
+    async def spa_root() -> FileResponse:
+        return FileResponse(STATIC_DIR / "index.html")
+
+    @app.get("/{full_path:path}")
+    async def spa_fallback(full_path: str) -> FileResponse:
+        # Prefer real static files (logo, favicon, etc.); otherwise SPA index.
+        candidate = (STATIC_DIR / full_path).resolve()
+        try:
+            candidate.relative_to(STATIC_DIR.resolve())
+        except ValueError:
+            return FileResponse(STATIC_DIR / "index.html")
+        if candidate.is_file():
+            return FileResponse(candidate)
+        return FileResponse(STATIC_DIR / "index.html")
+
+
+_mount_spa()

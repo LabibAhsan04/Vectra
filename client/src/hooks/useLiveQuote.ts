@@ -24,7 +24,9 @@ export function useLiveQuote(
       setLive(null);
       return;
     }
-    const wsBase = API_BASE_URL.replace(/^http/, 'ws');
+    const wsBase = API_BASE_URL
+      ? API_BASE_URL.replace(/^http/, 'ws')
+      : `${window.location.protocol === 'https:' ? 'wss:' : 'ws:'}//${window.location.host}`;
     const socket = new WebSocket(`${wsBase}/api/ws/quotes/${encodeURIComponent(ticker)}`);
     socket.onmessage = (event) => {
       try {
