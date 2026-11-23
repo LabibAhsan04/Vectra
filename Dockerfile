@@ -1,5 +1,6 @@
 # Vectra — standard single-container Docker image (any host that runs Docker)
 # Frontend (Vite/React) is built and served by the FastAPI backend on port 3000.
+# Compatible with read-only root + writable /tmp (e.g. LaunchBase / Traefik).
 
 # ---- Frontend build ----
 FROM node:22-alpine AS frontend
@@ -18,9 +19,7 @@ FROM python:3.12-slim AS runtime
 
 WORKDIR /app
 
-RUN useradd --create-home --uid 10001 appuser \
-  && mkdir -p /app/data /data \
-  && chown -R appuser:appuser /app /data
+RUN useradd --create-home --uid 10001 appuser
 
 COPY server/requirements.txt .
 RUN pip install --no-cache-dir -r requirements.txt
@@ -28,13 +27,16 @@ RUN pip install --no-cache-dir -r requirements.txt
 COPY server/ .
 COPY --from=frontend /build/client/dist ./static
 
-RUN chown -R appuser:appuser /app
-
-USER appuser
-
+# Writable state lives under /tmp (tmpfs). Do not require /app or /data writes.
 ENV PORT=3000 \
     PYTHONUNBUFFERED=1 \
-    ENV=production
+    ENV=production \
+    HOME=/tmp \
+    TMPDIR=/tmp \
+    XDG_CACHE_HOME=/tmp/cache \
+    VECTRA_DATA_DIR=/tmp/vectra
+
+USER appuser
 
 EXPOSE 3000
 
